@@ -6,8 +6,8 @@ A language somewhere between MS Excel and json with comments and trailing
 commas. The key ability is to calculate a value based on other values in the
 file.
 
-A valid json file or even a json file with comments should be a valid json++
-file, but it won't go the other way. Not all json++ files are valid json.
+A valid json file or even a json file with comments should be a valid JSON++
+file, but it won't go the other way. Not all JSON++ files are valid json.
 
 ## The language
 
@@ -17,7 +17,9 @@ It is:
 - Garbage
 - Purely functional
 
-These qualities are independent of each other.
+These qualities are independent of each other. Be not afraid of the red in the
+syntax highlighting, GitHub simply doesn't comprehend the awesomeness of JSON++.
+Yet.
 
 To make a value interactive, have it start with an equals sign (=) similar to
 Excel. For example:
@@ -49,6 +51,17 @@ You can do basic math with familiar symbols, all of these are valid:
 ]
 ```
 
+It'll do some mild type coercion. If you're adding a string to a number, the
+number will get converted to a string and then concatenated to the string.
+JSON++ has mostly the same types as regular JSON, those being:
+
+- number is split to int and float while evaluating and then recombined to number in the output
+- string, double quoted
+- array
+- object
+- bool
+- null
+
 ### Functions
 
 There are a bunch of useful functions in the language. Which unlike in Excel,
@@ -58,6 +71,9 @@ include:
 - `pow(a, b)` - Raises a to the power of b
 - `log(a, b)` - a based Logarithm of b, `log(2, 8)` would output 3
 - `mod(a, b)` - Remainder when dividing a by b
+- `max(a, b)` - Returns the greater of two numeric values
+- `min(a, b)` - Returns the lesser of two numeric values
+- `len(a)` - Returns the length of a (string, object, array)
 
 #### Ref
 
@@ -90,7 +106,66 @@ for a file in the file system path and return its contents into this cell as a
 string.
 
 `import(path)` works like include, except it assumes the contents of that file
-are more json++, so it parses that file. Somewhat similar output to `ref`.
+are more JSON++, so it parses that file. Somewhat similar output to `ref`.
+
+#### Conditionals
+
+The `if(cond, a, b)` value works similar to excel. It evaluates to a if cond is
+truthy and b is cond is falsy. Truthy values include:
+
+- true
+- Non-empty strings, objects and arrays
+- Non-zero numbers
+
+Falsy values are:
+
+- 0
+- false
+- null
+- ""
+- {}
+- []
+
+You also have access to basic comparison features such as ==, >, <, >=, and <=.
+
+#### Fold
+
+To iterate and aggregate, you can use `fold`. It takes two arguments, a function
+and a collection. The function should be one that takes two arguments and
+returns whatever. It'll then push the entire collection through that function.
+This is enough to implement map, filter and reduce like so:
+
+```
+// Reduce, take a list, evaluate to a single value
+=fold(ref(some.list), (acc, elem) => f(acc, elem))
+
+// Map
+=fold(ref(some.list), (acc, elem) => [acc]+[f(elem)])
+
+// Filter
+=fold(ref(some.list), (acc, elem) => if(f(elem), [acc]+[elem], [acc]))
+```
+
+All of these have been provided out of convenience, where you simply input the
+collection followed by the function denoted as f in the examples above.
+
+### Data structures
+
+#### Ranges
+
+`a..b` will produce a range from a to b (non-inclusive). This only works if a
+and b are integers. These work similarly to arrays of integers
+
+#### Arrays
+
+Arrays can be indexed with the angle brackets `[n]`. Zero is the first element
+and positive indices count from the beginning. Negative indices count from the
+back. Indexing with a range produces a slice that corresponds to that range.
+
+#### Objects
+
+Object values can be accessed with angle brackets similar to arrays, except you
+have to use a string as a key.
 
 ## IO
 
