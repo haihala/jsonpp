@@ -1,0 +1,30 @@
+{
+  // This is a line comment
+  "first_name": "John", // Line comment at the end of a line
+  /*Block comment on it's own line*/
+  /*Start of line block comment*/ "last_name": "Smith",
+  "is_alive" /*Pre-colon block comment*/: true,
+  "age": /*Post-colon block comment*/ 27,
+  "address": {
+    // Line comment in an object
+    /* Block comment in an object */
+    "street_address": "21 2nd Street" /*Pre comma block comment*/,
+    "city": "New York" /*Post comma block comment*/,
+    /*Comment*/ "state" /*in*/: /*every*/ "NY" /*legal*/ /*position*/,
+    "postal_code": "10021-3100",
+  },
+  "phone_numbers": [
+    // Line comment in an array
+    /* Block comment in an array */
+    {
+      "type": "home",
+      "number": "212 555-1234",
+    },
+    {
+      "type": "office",
+      "number": "646 555-4567",
+    },
+  ],
+  "children": ["Catherine", "Thomas", "Trevor"],
+  "spouse": null,
+}

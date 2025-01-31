@@ -1,3 +1,8 @@
-fn main() {
-    println!("Hello, world!");
+use clap::Parser;
+
+use jsonpp::Args;
+
+pub fn main() {
+    let args = Args::parse();
+    args.execute();
 }
