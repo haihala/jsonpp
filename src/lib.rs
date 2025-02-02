@@ -157,4 +157,12 @@ mod tests {
             "parseables/ref_dynamic_resolved.json",
         );
     }
+
+    #[test]
+    fn import_and_include() {
+        evaluate_to_equivalent(
+            "parseables/import.json++",
+            "parseables/import_resolved.json",
+        );
+    }
 }

@@ -13,13 +13,13 @@ file, but it won't go the other way. Not all JSON++ files are valid json.
 
 It is:
 
-- A joke
-- Garbage
-- Purely functional
+- A garbage joke
+- Functional
+- Interpreted
 
 These qualities are independent of each other. Be not afraid of the red in the
 syntax highlighting, GitHub simply doesn't comprehend the awesomeness of JSON++.
-Yet.
+Yet. Most of this file is a spec and does not confirm that something works.
 
 To make a value interactive, you can call functions with our lisp-like syntax:
 

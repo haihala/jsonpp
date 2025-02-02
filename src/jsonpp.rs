@@ -1,7 +1,8 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
 
-use log::debug;
 use strum_macros::EnumIter;
+
+use crate::{evaluation, parsing};
 
 #[derive(Debug, Clone)]
 pub(crate) enum JsonPP {
@@ -57,8 +58,12 @@ pub(crate) enum Function {
     Log,
     Len,
     Ref,
-    Import,
+    If,
     Include,
+    Import,
+    Str,
+    Int,
+    Float,
     Fold,
     Map,
     Filter,
@@ -82,8 +87,12 @@ impl Display for Function {
                 Function::Log => "log",
                 Function::Len => "len",
                 Function::Ref => "ref",
-                Function::Import => "import",
+                Function::If => "if",
                 Function::Include => "include",
+                Function::Import => "import",
+                Function::Str => "str",
+                Function::Int => "int",
+                Function::Float => "float",
                 Function::Fold => "fold",
                 Function::Map => "map",
                 Function::Filter => "filter",
@@ -107,8 +116,12 @@ impl From<&str> for Function {
             "log" => Function::Log,
             "len" => Function::Len,
             "ref" => Function::Ref,
-            "import" => Function::Import,
+            "if" => Function::If,
             "include" => Function::Include,
+            "import" => Function::Import,
+            "str" => Function::Str,
+            "int" => Function::Int,
+            "float" => Function::Float,
             "fold" => Function::Fold,
             "map" => Function::Map,
             "filter" => Function::Filter,
@@ -137,7 +150,6 @@ pub(crate) struct Dynamic {
 impl Dynamic {
     pub fn resolve(self, path: &[PathChunk], root: &JsonPP) -> JsonPP {
         // Dynamic has no dependencies left, we can resolve it to a value
-        assert!(self.dependencies.is_empty());
         match self.fun {
             Function::Sum => sum_impl(self.args),
             Function::Sub => sub_impl(self.args),
@@ -148,10 +160,14 @@ impl Dynamic {
             Function::Log => log_impl(self.args),
             Function::Len => len_impl(self.args),
             Function::Ref => ref_impl(self.args, path, root),
-            Function::Min => todo!(),
-            Function::Max => todo!(),
-            Function::Import => todo!(),
-            Function::Include => todo!(),
+            Function::Min => min_impl(self.args),
+            Function::Max => max_impl(self.args),
+            Function::If => if_impl(self.args),
+            Function::Include => include_impl(self.args),
+            Function::Import => import_impl(self.args),
+            Function::Str => str_impl(self.args),
+            Function::Int => int_impl(self.args),
+            Function::Float => float_impl(self.args),
             Function::Fold => todo!(),
             Function::Map => todo!(),
             Function::Filter => todo!(),
@@ -248,86 +264,127 @@ fn ref_impl(args: Vec<JsonPP>, self_path: &[PathChunk], root: &JsonPP) -> JsonPP
         panic!("Non-string reference: {:?}", args);
     };
 
-    let target_path = ref_chain(target);
+    let target_path = evaluation::ref_chain(target);
 
-    abs_fetch(&make_absolute(self_path, &target_path), root).clone()
+    evaluation::abs_fetch(&evaluation::make_absolute(self_path, &target_path), root).clone()
 }
 
-pub(crate) fn make_absolute(self_path: &[PathChunk], target_path: &[PathChunk]) -> Vec<PathChunk> {
-    if target_path.first() == Some(&PathChunk::Parent) {
-        // Relative path
-        let mut out: Vec<PathChunk> = self_path.iter().cloned().collect();
-        for chunk in target_path {
-            if *chunk == PathChunk::Parent {
-                out.pop();
-            } else {
-                out.push(chunk.clone());
-            }
-        }
-
-        return out;
-    }
-
-    return target_path.to_vec();
+fn min_impl(args: Vec<JsonPP>) -> JsonPP {
+    num_reduce(i64::min, f64::min, args)
 }
 
-pub(crate) fn ref_chain(path: String) -> Vec<PathChunk> {
-    path.split(".")
-        .map(|chunk| {
-            if chunk.is_empty() {
-                return PathChunk::Parent;
-            }
-
-            if chunk.starts_with("[") && chunk.ends_with("]") {
-                let inner = &chunk[1..(chunk.len() - 2)];
-                return PathChunk::Index(inner.parse().unwrap());
-            }
-
-            if chunk.starts_with("(") && chunk.ends_with(")") {
-                let inner = &chunk[1..(chunk.len() - 2)];
-                return PathChunk::Argument(inner.parse().unwrap());
-            }
-
-            PathChunk::Key(chunk.to_owned())
-        })
-        .collect()
+fn max_impl(args: Vec<JsonPP>) -> JsonPP {
+    num_reduce(i64::max, f64::max, args)
 }
 
-pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> &'a JsonPP {
-    if path.is_empty() {
-        return root;
-    }
+fn if_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 3); // Condition, if true, if not;
+    let JsonPP::Bool(cond) = args[0].clone() else {
+        panic!("If condition is not a boolean")
+    };
 
-    let next = &path[0];
-    let rest = &path[1..];
+    let index = if cond { 1 } else { 2 };
+    args[index].clone()
+}
 
-    match next {
-        PathChunk::Parent => todo!(),
-        PathChunk::Key(key) => {
-            let JsonPP::Object(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, key, path);
-                panic!("Accessing with a key");
-            };
+fn include_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
 
-            abs_fetch(rest, &inner[key])
+    let JsonPP::String(path) = args[0].clone() else {
+        panic!("Include path is not a string")
+    };
+
+    let mut file = File::open(path).unwrap();
+    let mut buffer = vec![];
+    file.read_to_end(&mut buffer).unwrap();
+
+    let string: String = buffer.into_iter().map(char::from).collect();
+    JsonPP::String(string.trim().to_owned())
+}
+
+fn import_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+
+    let JsonPP::String(path) = args[0].clone() else {
+        panic!("Import path is not a string")
+    };
+
+    let mut file = File::open(path).unwrap();
+    let mut buffer = vec![];
+    file.read_to_end(&mut buffer).unwrap();
+
+    evaluation::evaluate_raw(parsing::Parser::from(buffer).parse())
+}
+
+fn str_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+
+    JsonPP::String(match args[0].clone() {
+        JsonPP::String(val) => val,
+
+        JsonPP::Null => "null".to_owned(),
+        JsonPP::Bool(val) => val.to_string(),
+        JsonPP::Int(val) => val.to_string(),
+        JsonPP::Float(val) => val.to_string(),
+
+        JsonPP::Array(vec) => {
+            format!(
+                "[{}]",
+                vec.into_iter()
+                    .map(|elem| {
+                        let JsonPP::String(val) = str_impl(vec![elem]) else {
+                            panic!("Array element didn't convert to string")
+                        };
+                        val
+                    })
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            )
         }
-        PathChunk::Index(index) => {
-            let JsonPP::Array(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, index, path);
-                panic!("Accessing with an index");
-            };
+        JsonPP::Object(hash_map) => format!(
+            "{{{}}}",
+            hash_map
+                .into_iter()
+                .map(|(key, elem)| {
+                    let JsonPP::String(val) = str_impl(vec![elem]) else {
+                        panic!("Array element didn't convert to string")
+                    };
+                    format!("\"{}\": {}", key, val)
+                })
+                .collect::<Vec<String>>()
+                .join(", ")
+        ),
+        // This is not supposed to be evaluated with a dynamic
+        JsonPP::Dynamic(_) => panic!("Can't convert dynamic to string"),
+    })
+}
 
-            abs_fetch(rest, &inner[*index])
-        }
-        PathChunk::Argument(index) => {
-            let JsonPP::Dynamic(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, index, path);
-                panic!("Accessing with an argument");
-            };
+fn int_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
 
-            abs_fetch(rest, &inner.args[*index])
-        }
-    }
+    JsonPP::Int(match args[0].clone() {
+        JsonPP::Int(val) => val,
+
+        JsonPP::Null => 0,
+        JsonPP::Bool(val) => val as i64,
+        JsonPP::Float(val) => val.round() as i64,
+        JsonPP::String(val) => val.parse().expect("str to int parse failed"),
+        other => panic!("Can't convert \"{:?}\" to int", other),
+    })
+}
+
+fn float_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+
+    JsonPP::Float(match args[0].clone() {
+        JsonPP::Float(val) => val,
+
+        JsonPP::Null => 0.0,
+        JsonPP::Bool(val) => val as i64 as f64,
+        JsonPP::Int(val) => val as f64,
+        JsonPP::String(val) => val.parse().expect("str to float parse failed"),
+        other => panic!("Can't convert \"{:?}\" to float", other),
+    })
 }
 
 #[cfg(test)]
@@ -342,7 +399,7 @@ mod tests {
         ];
         // Target a sibling
         let target_path = vec![PathChunk::Parent, PathChunk::Key("Bar".to_owned())];
-        let new_abs_path = make_absolute(&self_path, &target_path);
+        let new_abs_path = evaluation::make_absolute(&self_path, &target_path);
 
         assert_eq!(
             vec![
@@ -360,7 +417,7 @@ mod tests {
         ];
         // Target a sibling
         let target_path = vec![PathChunk::Key("Bar".to_owned())];
-        let new_abs_path = make_absolute(&self_path, &target_path);
+        let new_abs_path = evaluation::make_absolute(&self_path, &target_path);
 
         assert_eq!(vec![PathChunk::Key("Bar".to_owned())], new_abs_path)
     }
