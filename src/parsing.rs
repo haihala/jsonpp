@@ -175,10 +175,16 @@ impl Parser {
         assert!(curr.is_numeric() || curr == '-');
 
         // Read until comma, see if there is a period, do int or float based on that
-        let string = self.take_while(|ch| ch.is_ascii_digit() || ch == '.' || ch == '-');
+        let string = self
+            .take_while(|ch| ch.is_ascii_digit() || ".-+eE".contains(ch))
+            .to_lowercase();
 
-        if string.contains('.') {
-            JsonPP::Float(string.parse().unwrap())
+        // Rust default float parsing is very good, but panics on fractional exponents
+        if ".e".chars().any(|ch| string.contains(ch)) {
+            let (mant, exp) = string.split_once('e').unwrap_or((&string, "0"));
+            let mantissa: f64 = mant.parse().unwrap();
+            let exponent: f64 = exp.parse().unwrap();
+            JsonPP::Float(mantissa * 10.0f64.powf(exponent))
         } else {
             JsonPP::Int(string.parse().unwrap())
         }
