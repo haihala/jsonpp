@@ -64,6 +64,8 @@ pub(crate) enum Function {
     Str,
     Int,
     Float,
+    Range,
+    Merge,
     Fold,
     Map,
     Filter,
@@ -93,6 +95,8 @@ impl Display for Function {
                 Function::Str => "str",
                 Function::Int => "int",
                 Function::Float => "float",
+                Function::Range => "range",
+                Function::Merge => "merge",
                 Function::Fold => "fold",
                 Function::Map => "map",
                 Function::Filter => "filter",
@@ -122,6 +126,8 @@ impl From<&str> for Function {
             "str" => Function::Str,
             "int" => Function::Int,
             "float" => Function::Float,
+            "range" => Function::Range,
+            "merge" => Function::Merge,
             "fold" => Function::Fold,
             "map" => Function::Map,
             "filter" => Function::Filter,
@@ -168,6 +174,8 @@ impl Dynamic {
             Function::Str => str_impl(self.args),
             Function::Int => int_impl(self.args),
             Function::Float => float_impl(self.args),
+            Function::Range => range_impl(self.args),
+            Function::Merge => merge_impl(self.args),
             Function::Fold => todo!(),
             Function::Map => todo!(),
             Function::Filter => todo!(),
@@ -385,6 +393,84 @@ fn float_impl(args: Vec<JsonPP>) -> JsonPP {
         JsonPP::String(val) => val.parse().expect("str to float parse failed"),
         other => panic!("Can't convert \"{:?}\" to float", other),
     })
+}
+
+fn range_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let JsonPP::Int(start) = args[0].clone() else {
+        panic!("Range start is not an int")
+    };
+    let JsonPP::Int(end) = args[1].clone() else {
+        panic!("Range end is not an int")
+    };
+
+    JsonPP::Array((start..end).map(JsonPP::Int).collect())
+}
+
+fn merge_impl(args: Vec<JsonPP>) -> JsonPP {
+    // Works on strings, arrays and objects
+    // All participants must be of the same type
+
+    if args.iter().all(|el| matches!(el, JsonPP::String(_))) {
+        return string_merge_impl(args);
+    }
+
+    if args.iter().all(|el| matches!(el, JsonPP::Array(_))) {
+        return array_merge_impl(args);
+    }
+
+    if args.iter().all(|el| matches!(el, JsonPP::Object(_))) {
+        return object_merge_impl(args);
+    }
+
+    panic!("Either mismatched array elements or illegal types of elements in merge");
+}
+
+fn string_merge_impl(args: Vec<JsonPP>) -> JsonPP {
+    // All elements are strings
+    JsonPP::String(
+        args.into_iter()
+            .map(|el| {
+                let JsonPP::String(val) = el else {
+                    unreachable!()
+                };
+
+                val
+            })
+            .collect::<Vec<String>>()
+            .join(""),
+    )
+}
+
+fn array_merge_impl(args: Vec<JsonPP>) -> JsonPP {
+    // All elements are arrays
+    JsonPP::Array(
+        args.into_iter()
+            .flat_map(|el| {
+                let JsonPP::Array(val) = el else {
+                    unreachable!()
+                };
+
+                val
+            })
+            .collect(),
+    )
+}
+
+fn object_merge_impl(args: Vec<JsonPP>) -> JsonPP {
+    // All elements are objects
+    JsonPP::Object(
+        args.into_iter()
+            .flat_map(|el| {
+                let JsonPP::Object(val) = el else {
+                    unreachable!()
+                };
+
+                val
+            })
+            .collect(),
+    )
 }
 
 #[cfg(test)]

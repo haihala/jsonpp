@@ -68,7 +68,7 @@ include:
 - `(str a)` - Returns a as a string
 - `(int a)` - Attempts to parse an integer out of a
 - `(float a)` - Attempts to parse a float out of a
-- `(concat a, b)` - Concatenates strings and arrays
+- `(merge a, b)` - Concatenates strings and arrays, combines objects
 
 #### Ref
 
@@ -135,10 +135,10 @@ This is enough to implement map, filter and reduce like so:
 (fold (ref some.list), (acc, elem) => (f acc, elem))
 
 // Map
-(fold (ref some.list), (acc, elem) => (concat [acc], [(f elem)]))
+(fold (ref some.list), (acc, elem) => (merge [acc], [(f elem)]))
 
 // Filter
-(fold((ref some.list), (acc, elem) => (if (f elem), (concat [acc], [elem]), [acc]))
+(fold((ref some.list), (acc, elem) => (if (f elem), (merge [acc], [elem]), [acc]))
 ```
 
 All of these have been provided out of convenience, where you simply input the
@@ -146,16 +146,13 @@ collection followed by the function denoted as f in the examples above.
 
 ### Data structures
 
-#### Ranges
-
-`a..b` will produce a range from a to b (non-inclusive). This only works if a
-and b are integers. These work similarly to arrays of integers
-
 #### Arrays
 
 Arrays can be indexed with the angle brackets `[n]`. Zero is the first element
 and positive indices count from the beginning. Negative indices count from the
 back. Indexing with a range produces a slice that corresponds to that range.
+
+Arrays of integers can be generated with the `(range start end)` function.
 
 #### Objects
 
