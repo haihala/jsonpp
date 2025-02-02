@@ -39,6 +39,24 @@ impl Parser {
 
     fn skip(&mut self, mut cond: impl FnMut(char) -> bool) {
         while let Some(ch) = self.current() {
+            if self.starts_with("//") {
+                while !self.starts_with("\n") {
+                    self.index += 1;
+                }
+                // Skip over the newline
+                self.index += 1;
+                continue;
+            }
+
+            if self.starts_with("/*") {
+                while !self.starts_with("*/") {
+                    self.index += 1;
+                }
+                // Skip over the closing comment
+                self.index += 2;
+                continue;
+            }
+
             if cond(ch) {
                 self.index += 1;
             } else {

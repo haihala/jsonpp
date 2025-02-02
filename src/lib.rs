@@ -82,6 +82,17 @@ mod tests {
     }
 
     #[test]
+    fn commented_json() {
+        let uncommented_content = read_file("parseables/wikipedia.json");
+        let commented_content = read_file("parseables/wikipedia.jsonc");
+
+        let uncommented = evaluation::evaluate(parsing::Parser::from(uncommented_content).parse());
+        let commented = evaluation::evaluate(parsing::Parser::from(commented_content).parse());
+
+        assert_eq!(uncommented, commented);
+    }
+
+    #[test]
     fn number_formats() {
         compare_serde("parseables/numbers.json");
     }
