@@ -1,0 +1,10 @@
+{
+    "key": (sum 1, 2),
+    "many": [
+        (sub 3 5),
+        (mul 3 5),
+        (div 3 5),  // integer division rounds down
+        (pow 3 5),
+        (mod 3 5),
+    ]
+}

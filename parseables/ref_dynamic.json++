@@ -1,0 +1,8 @@
+{
+    "key": (sum 1, 2),
+    "many": [
+        (mod 3 5),
+        (mul (ref "key") 2),
+        (div (ref "...key") 2.0),
+    ]
+}

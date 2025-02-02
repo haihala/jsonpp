@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use log::debug;
+use strum::IntoEnumIterator;
 
-use crate::jsonpp::JsonPP;
+use crate::jsonpp::{Dynamic, Function, JsonPP};
 
 pub(crate) struct Parser {
     chars: Vec<char>,
@@ -30,7 +31,7 @@ impl Parser {
         match first_char {
             '[' => self.parse_array(),
             '{' => self.parse_object(),
-            '=' => self.parse_dynamic(),
+            '(' => self.parse_dynamic(),
             '"' => self.parse_string(),
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '-' => self.parse_number(),
             _ => self.parse_other(),
@@ -209,10 +210,45 @@ impl Parser {
     }
 
     fn parse_dynamic(&mut self) -> JsonPP {
-        debug!("Parsing dynamic");
-        // It's gonna be a bunch of nested function calls and operators
-        // Read until the first comma that's not within parenthesis
-        todo!();
+        // It starts with (. Read until the other pair
+        assert!(self.current() == Some('('));
+        self.index += 1;
+
+        // Recursively call parse for intermediate objects
+        self.skip_whitespace();
+
+        let mut function = None;
+
+        for fun in Function::iter() {
+            let string = fun.to_string();
+            if self.starts_with(&string) {
+                // We found our function
+                function = Some(fun);
+                break;
+            }
+        }
+
+        let fun = function.unwrap();
+        self.index += fun.to_string().len();
+
+        self.skip_whitespace();
+
+        let mut args = vec![];
+        while self.current() != Some(')') {
+            args.push(self.parse());
+            self.skip_to_next_iterable();
+        }
+
+        // It should end with the closing half
+        assert!(self.current() == Some(')'));
+        self.index += 1;
+
+        JsonPP::Dynamic(Dynamic {
+            fun,
+            args,
+            path: vec![],
+            dependencies: vec![],
+        })
     }
 
     fn parse_other(&mut self) -> JsonPP {

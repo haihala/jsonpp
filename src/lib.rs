@@ -4,8 +4,8 @@ use std::{
 };
 
 use clap;
-use log;
 use log::debug;
+use log::{self, info};
 use serde_json;
 
 mod evaluation;
@@ -33,15 +33,14 @@ impl Args {
 
         debug!("Read in {read_result} bytes");
 
-        debug!("Parsing");
+        info!("Parsing");
         let parsed = parsing::Parser::from(input_buf).parse();
-        debug!("Parsed input");
-
-        debug!("Evaluating");
+        info!("Parsed input, evaluating");
         let evaluated = evaluation::evaluate(parsed);
-        debug!("Evaluated input");
+        info!("Evaluated input");
 
         if let Some(path) = self.output {
+            debug!("Outputting to file: {}", &path);
             let mut file = OpenOptions::new()
                 .write(true)
                 .create_new(true)
@@ -51,6 +50,7 @@ impl Args {
             file.write(&serde_json::to_vec_pretty(&evaluated).unwrap())
                 .unwrap();
         } else {
+            debug!("Outputting to stdout");
             println!("{}", serde_json::to_string_pretty(&evaluated).unwrap());
         }
     }
@@ -76,6 +76,16 @@ mod tests {
         assert_eq!(evaluated, serde_version);
     }
 
+    fn evaluate_to_equivalent(path1: &'static str, path2: &'static str) {
+        let file1 = read_file(path1);
+        let file2 = read_file(path2);
+
+        let eval1 = evaluation::evaluate(parsing::Parser::from(file1).parse());
+        let eval2 = evaluation::evaluate(parsing::Parser::from(file2).parse());
+
+        assert_eq!(eval1, eval2);
+    }
+
     #[test]
     fn regular_json() {
         compare_serde("parseables/wikipedia.json");
@@ -83,13 +93,7 @@ mod tests {
 
     #[test]
     fn commented_json() {
-        let uncommented_content = read_file("parseables/wikipedia.json");
-        let commented_content = read_file("parseables/wikipedia.jsonc");
-
-        let uncommented = evaluation::evaluate(parsing::Parser::from(uncommented_content).parse());
-        let commented = evaluation::evaluate(parsing::Parser::from(commented_content).parse());
-
-        assert_eq!(uncommented, commented);
+        evaluate_to_equivalent("parseables/wikipedia.json", "parseables/wikipedia.jsonc");
     }
 
     #[test]
@@ -136,5 +140,21 @@ mod tests {
             let float = val.as_f64().unwrap();
             assert_eq!(float, target);
         }
+    }
+
+    #[test]
+    fn simple_dynamic() {
+        evaluate_to_equivalent(
+            "parseables/simple_dynamic.json++",
+            "parseables/simple_dynamic_resolved.json",
+        );
+    }
+
+    #[test]
+    fn reference_dynamic() {
+        evaluate_to_equivalent(
+            "parseables/ref_dynamic.json++",
+            "parseables/ref_dynamic_resolved.json",
+        );
     }
 }

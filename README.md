@@ -21,13 +21,12 @@ These qualities are independent of each other. Be not afraid of the red in the
 syntax highlighting, GitHub simply doesn't comprehend the awesomeness of JSON++.
 Yet.
 
-To make a value interactive, have it start with an equals sign (=) similar to
-Excel. For example:
+To make a value interactive, you can call functions with our lisp-like syntax:
 
 ```json
 {
     "key1": "1",
-    "key2": =2,
+    "key2": (sum 2, 1),
 }
 ```
 
@@ -36,24 +35,12 @@ Will evaluate to:
 ```json
 {
   "key1": "1",
-  "key2": 2
+  "key2": 3
 }
 ```
 
-You can do basic math with familiar symbols, all of these are valid:
-
-```json
-[
-    =1+1,
-    =5-3,
-    =2/3,   // Dividing by zero will exit the program with an error message
-    =4*5,
-]
-```
-
-It'll do some mild type coercion. If you're adding a string to a number, the
-number will get converted to a string and then concatenated to the string.
-JSON++ has mostly the same types as regular JSON, those being:
+There are cases when some function demands a specific type. JSON++ has mostly
+the same types as regular JSON, those being:
 
 - number is split to int and float while evaluating and then recombined to number in the output
 - string, double quoted
@@ -68,31 +55,39 @@ There are a bunch of useful functions in the language. Which unlike in Excel,
 won't get translated because I'm not that committed to the joke. Some of these
 include:
 
-- `pow(a, b)` - Raises a to the power of b
-- `log(a, b)` - a based Logarithm of b, `log(2, 8)` would output 3
-- `mod(a, b)` - Remainder when dividing a by b
-- `max(a, b)` - Returns the greater of two numeric values
-- `min(a, b)` - Returns the lesser of two numeric values
-- `len(a)` - Returns the length of a (string, object, array)
+- `(sum a, b, c, d...)` - Calculates the sum of all the elements
+- `(sub a, b)` - a-b
+- `(mul a, b, c, d...)` - Calculates the product of all the elements
+- `(div a, b)` - a/b, will exit if b is zero
+- `(pow a, b)` - Raises a to the power of b
+- `(log a, b)` - a based Logarithm of b, `log(2, 8)` would output 3
+- `(mod a, b)` - Remainder when dividing a by b
+- `(max a, b)` - Returns the greater of two numeric values
+- `(min a, b)` - Returns the lesser of two numeric values
+- `(len a)` - Returns the length of a (string, object, array)
+- `(str a)` - Returns a as a string
+- `(int a)` - Attempts to parse an integer out of a
+- `(float a)` - Attempts to parse a float out of a
+- `(concat a, b)` - Concatenates strings and arrays
 
 #### Ref
 
-`ref(path)` will evaluate to the value in the cell in the given path. Here are
+`(ref path)` will evaluate to the value in the cell in the given path. Here are
 some valid paths:
 
-- `ref(foo)` - Value on the root object with the key 'foo'
-- `ref(.foo)` - Sibling value with the key 'foo' on the same object
-- `ref(foo.bar)` - Value of key 'bar' within the value of the key 'foo' within object root
-- `ref(.foo.bar)` - Value of key 'bar' within the value of the key 'foo', which is a sibling of current cell
-- `ref(.)` - Parent of current cell
-- `ref(..)` - Parent of the parent of current cell
-- `ref(...)` - Parent of the parent of the parent of current cell, this keeps going
-- `ref([1])` - Assumes root node is an array, references the second element
-- `ref(.[1])` - Second sibling element (referer is another element in the same list)
-- `ref(.[-1])` - Previous sibling element, maybe later also next child
-- `ref(foo.[1])` - Second child of the array that is under key 'foo' under root
-- `ref(foo.[_])` - Every child of the array that is under key 'foo' under root
-- `ref(foo.[_].name)` - Name of every child of the array that is under key 'foo' under root
+- `(ref foo)` - Value on the root object with the key 'foo'
+- `(ref .foo)` - Sibling value with the key 'foo' on the same object
+- `(ref foo.bar)` - Value of key 'bar' within the value of the key 'foo' within object root
+- `(ref .foo.bar)` - Value of key 'bar' within the value of the key 'foo', which is a sibling of current cell
+- `(ref .)` - Parent of current cell
+- `(ref ..)` - Parent of the parent of current cell
+- `(ref ...)` - Parent of the parent of the parent of current cell, this keeps going
+- `(ref [1])` - Assumes root node is an array, references the second element
+- `(ref .[1])` - Second sibling element (referer is another element in the same list)
+- `(ref .[-1])` - Previous sibling element, maybe later also next child
+- `(ref foo.[1])` - Second child of the array that is under key 'foo' under root
+- `(ref foo.[_])` - Every child of the array that is under key 'foo' under root
+- `(ref foo.[_].name)` - Name of every child of the array that is under key 'foo' under root
 
 Ref is probably the most important function. It allows you to reference a
 different 'cell'. When the initial file is parsed, dependencies between cells
@@ -101,16 +96,16 @@ dependency is detected, the program exits with an error message.
 
 #### Import and include
 
-`include(path)` will work similar to include in languages like c. It will look
+`(include path)` will work similar to include in languages like c. It will look
 for a file in the file system path and return its contents into this cell as a
 string.
 
-`import(path)` works like include, except it assumes the contents of that file
+`(import path)` works like include, except it assumes the contents of that file
 are more JSON++, so it parses that file. Somewhat similar output to `ref`.
 
 #### Conditionals
 
-The `if(cond, a, b)` value works similar to excel. It evaluates to a if cond is
+The `(if cond, a, b)` value works similar to excel. It evaluates to a if cond is
 truthy and b is cond is falsy. Truthy values include:
 
 - true
@@ -137,13 +132,13 @@ This is enough to implement map, filter and reduce like so:
 
 ```
 // Reduce, take a list, evaluate to a single value
-=fold(ref(some.list), (acc, elem) => f(acc, elem))
+(fold (ref some.list), (acc, elem) => (f acc, elem))
 
 // Map
-=fold(ref(some.list), (acc, elem) => [acc]+[f(elem)])
+(fold (ref some.list), (acc, elem) => (concat [acc], [(f elem)]))
 
 // Filter
-=fold(ref(some.list), (acc, elem) => if(f(elem), [acc]+[elem], [acc]))
+(fold((ref some.list), (acc, elem) => (if (f elem), (concat [acc], [elem]), [acc]))
 ```
 
 All of these have been provided out of convenience, where you simply input the
