@@ -4,7 +4,7 @@ use strum_macros::EnumIter;
 
 use crate::{evaluation, parsing};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum JsonPP {
     Null,
     Bool(bool),
@@ -58,6 +58,11 @@ pub(crate) enum Function {
     Log,
     Len,
     Ref,
+    Eq,
+    Gt,
+    Lt,
+    Gte,
+    Lte,
     If,
     Include,
     Import,
@@ -89,6 +94,11 @@ impl Display for Function {
                 Function::Log => "log",
                 Function::Len => "len",
                 Function::Ref => "ref",
+                Function::Eq => "eq",
+                Function::Gt => "gt",
+                Function::Lt => "lt",
+                Function::Gte => "gte",
+                Function::Lte => "lte",
                 Function::If => "if",
                 Function::Include => "include",
                 Function::Import => "import",
@@ -120,6 +130,11 @@ impl From<&str> for Function {
             "log" => Function::Log,
             "len" => Function::Len,
             "ref" => Function::Ref,
+            "eq" => Function::Eq,
+            "gt" => Function::Gt,
+            "lt" => Function::Lt,
+            "gte" => Function::Gte,
+            "lte" => Function::Lte,
             "if" => Function::If,
             "include" => Function::Include,
             "import" => Function::Import,
@@ -145,7 +160,7 @@ pub(crate) enum PathChunk {
     Argument(usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Dynamic {
     pub fun: Function,
     pub args: Vec<JsonPP>,
@@ -168,6 +183,11 @@ impl Dynamic {
             Function::Ref => ref_impl(self.args, path, root),
             Function::Min => min_impl(self.args),
             Function::Max => max_impl(self.args),
+            Function::Eq => eq_impl(self.args),
+            Function::Gt => num_cmp(self.args, |a, b| a > b, |a, b| a > b),
+            Function::Lt => num_cmp(self.args, |a, b| a < b, |a, b| a < b),
+            Function::Gte => num_cmp(self.args, |a, b| a >= b, |a, b| a >= b),
+            Function::Lte => num_cmp(self.args, |a, b| a <= b, |a, b| a <= b),
             Function::If => if_impl(self.args),
             Function::Include => include_impl(self.args),
             Function::Import => import_impl(self.args),
@@ -182,6 +202,28 @@ impl Dynamic {
             Function::Reduce => todo!(),
         }
     }
+}
+
+fn num_cmp(
+    args: Vec<JsonPP>,
+    int_f: fn(i64, i64) -> bool,
+    float_f: fn(f64, f64) -> bool,
+) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let first_arg = args[0].clone();
+    let second_arg = args[1].clone();
+
+    JsonPP::Bool(match (first_arg.clone(), second_arg.clone()) {
+        (JsonPP::Int(first), JsonPP::Int(second)) => int_f(first, second),
+        (JsonPP::Float(first), JsonPP::Float(second)) => float_f(first, second),
+        (JsonPP::Float(first), JsonPP::Int(second)) => float_f(first, second as f64),
+        (JsonPP::Int(first), JsonPP::Float(second)) => float_f(first as f64, second),
+        _ => panic!(
+            "Invalid operands to a numeric function, {:?} and {:?}",
+            first_arg, second_arg
+        ),
+    })
 }
 
 fn num_pair_op(
@@ -283,6 +325,15 @@ fn min_impl(args: Vec<JsonPP>) -> JsonPP {
 
 fn max_impl(args: Vec<JsonPP>) -> JsonPP {
     num_reduce(i64::max, f64::max, args)
+}
+
+fn eq_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let first_arg = args[0].clone();
+    let second_arg = args[1].clone();
+
+    JsonPP::Bool(first_arg == second_arg)
 }
 
 fn if_impl(args: Vec<JsonPP>) -> JsonPP {

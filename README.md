@@ -121,7 +121,8 @@ Falsy values are:
 - {}
 - []
 
-You also have access to basic comparison features such as ==, >, <, >=, and <=.
+You also have access to basic comparison functions such as `eq`, `lt`, `gt`,
+`lte`, and `gte`
 
 #### Fold
 
