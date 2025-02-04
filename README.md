@@ -1,13 +1,13 @@
 # JSON++
 
-aka jsonpp, jsonxx, or whatever you want to call it.
+jsonpp, json++, jsonxx, or whatever you want to call it is a JSON PreProcessor.
 
 A language somewhere between MS Excel and json with comments and trailing
 commas. The key ability is to calculate a value based on other values in the
 file.
 
-A valid json file or even a json file with comments should be a valid JSON++
-file, but it won't go the other way. Not all JSON++ files are valid json.
+A valid json file or even a json file with comments should be a valid jsonpp
+file, but it won't go the other way. Not all jsonpp files are valid json.
 
 ## The language
 
@@ -18,7 +18,7 @@ It is:
 - Interpreted
 
 These qualities are independent of each other. Be not afraid of the red in the
-syntax highlighting, GitHub simply doesn't comprehend the awesomeness of JSON++.
+syntax highlighting, GitHub simply doesn't comprehend the awesomeness of jsonpp.
 Yet. Most of what is on here works, but there are still lots of known bugs.
 Please for the love of everything you hold dear, don't use this for anything.
 
@@ -40,7 +40,7 @@ Will evaluate to:
 }
 ```
 
-There are cases when some function demands a specific type. JSON++ has mostly
+There are cases when some function demands a specific type. jsonpp has mostly
 the same types as regular JSON, those being:
 
 - number is split to int and float while evaluating and then recombined to number in the output
@@ -102,7 +102,7 @@ for a file in the file system path and return its contents into this cell as a
 string.
 
 `(import path)` works like include, except it assumes the contents of that file
-are more JSON++, so it parses that file. Somewhat similar output to `ref`.
+are more jsonpp, so it parses that file. Somewhat similar output to `ref`.
 
 #### Conditionals
 
