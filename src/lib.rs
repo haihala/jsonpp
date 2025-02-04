@@ -70,8 +70,11 @@ mod tests {
     fn compare_serde(path: &'static str) {
         let contents = read_file(path);
         let parsed = parsing::Parser::from(contents.clone()).parse();
+        dbg!(&parsed);
         let evaluated = evaluation::evaluate(parsed);
+        dbg!(&evaluated);
         let serde_version: serde_json::Value = serde_json::from_slice(&contents).unwrap();
+        dbg!(&serde_version);
 
         assert_eq!(evaluated, serde_version);
     }
@@ -94,6 +97,11 @@ mod tests {
     #[test]
     fn commented_json() {
         evaluate_to_equivalent("parseables/wikipedia.json", "parseables/wikipedia.jsonc");
+    }
+
+    #[test]
+    fn strings_formats() {
+        compare_serde("parseables/strings.json");
     }
 
     #[test]

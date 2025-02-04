@@ -165,7 +165,7 @@ impl Parser {
         // Ignore escaped double quotes
         // Ignore escaped escapes
         let mut being_escaped = false;
-        let out = JsonPP::String(self.take_while(move |ch| {
+        let chars = self.take_while(move |ch| {
             if ch == '"' {
                 if being_escaped {
                     being_escaped = false;
@@ -183,7 +183,8 @@ impl Parser {
                 }
                 true
             }
-        }));
+        });
+        let out = JsonPP::String(handle_escapes(chars));
 
         assert!(self.current() == Some('"'));
         self.index += 1;
@@ -264,5 +265,76 @@ impl Parser {
         }
 
         JsonPP::Identifier(val)
+    }
+}
+
+fn handle_escapes(input: String) -> String {
+    let mut iter = input.chars().peekable();
+    let mut coll = vec![];
+
+    let mut skip_next = false;
+    while let Some(current) = iter.next() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
+        if current == '\\' {
+            if let Some(special) = iter
+                .peek()
+                .map(|next| match next {
+                    'n' => Some("\n"),
+                    't' => Some("\t"),
+                    '"' => Some("\""),
+                    '\\' => Some("\\"),
+                    _ => None,
+                })
+                .flatten()
+            {
+                skip_next = true;
+                coll.push(special.to_string());
+                continue;
+            }
+        }
+
+        coll.push(current.to_string());
+    }
+
+    coll.join("")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_string_parsing() {
+        let basic_string = String::from("basic string");
+        let mut parser = Parser::from(format!("\"{}\"", basic_string).as_bytes().to_vec());
+        assert_eq!(parser.parse_string(), JsonPP::String(basic_string));
+    }
+
+    #[test]
+    fn one_char_string_parsing() {
+        let monochar_string = String::from("x");
+        let mut parser = Parser::from(format!("\"{}\"", monochar_string).as_bytes().to_vec());
+        assert_eq!(parser.parse_string(), JsonPP::String(monochar_string));
+    }
+
+    #[test]
+    fn escape_char_string_parsing() {
+        // File is read in one char at a time, parser gets '\\' and 'n' and should produce '\n'
+        for (input, expected) in [("\\n", "\n"), ("\\t", "\t"), ("\\\\", "\\"), ("\\\"", "\"")] {
+            dbg!(&input, expected);
+            let mut parser = Parser::from(format!("\"{}\"", input).as_bytes().to_vec());
+            assert_eq!(parser.parse_string(), JsonPP::String(expected.to_string()));
+        }
+    }
+
+    #[test]
+    fn escaped_string_parsing() {
+        let escaped_string = String::from("pre\\post");
+        let mut parser = Parser::from(format!("\"{}\"", escaped_string).as_bytes().to_vec());
+        assert_eq!(parser.parse_string(), JsonPP::String(escaped_string));
     }
 }
