@@ -3,10 +3,7 @@ use std::{
     io::{stdin, Read, Write},
 };
 
-use clap;
-use log::debug;
-use log::{self, info};
-use serde_json;
+use log::{debug, info};
 
 mod evaluation;
 mod jsonpp;
@@ -47,7 +44,8 @@ impl Args {
                 .open(path)
                 .unwrap();
 
-            file.write(&serde_json::to_vec_pretty(&evaluated).unwrap())
+            let _ = file
+                .write(&serde_json::to_vec_pretty(&evaluated).unwrap())
                 .unwrap();
         } else {
             debug!("Outputting to stdout");

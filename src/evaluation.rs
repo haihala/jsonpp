@@ -13,32 +13,27 @@ pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
     while !dynamic_paths.is_empty() {
         let mut progressing = false;
         // Resolve all the ones without dependencies
-        for dp in dynamic_paths.clone().iter() {
-            let JsonPP::Dynamic(dv) = abs_fetch(dp, &root).unwrap() else {
+        for dyn_path in dynamic_paths.clone().iter() {
+            let JsonPP::Dynamic(dyn_val) = abs_fetch(dyn_path, &root).unwrap() else {
                 panic!("Fetching dynamics yields non-dynamic");
             };
 
-            let deps = dv.dependencies.iter().filter(|dep| {
-                let path = make_absolute(dp, dep);
+            let dyn_deps = dyn_val.dependencies.iter().filter(|dep| {
+                let path = make_absolute(dyn_path, dep);
 
-                if let Some(target) = abs_fetch(&path, &root) {
-                    matches!(target, JsonPP::Dynamic(_))
-                } else {
-                    // If path fails to resolve, it means it's depending on something that got
-                    // evaluated out of existence, most likely in a fold of some sort
-                    false
-                }
+                let target = abs_fetch(&path, &root).unwrap();
+                matches!(target, JsonPP::Dynamic(_))
             });
 
-            if deps.count() == 0 {
+            if dyn_deps.count() == 0 {
                 progressing = true;
-                let val = dv.clone().resolve(dp, &root);
-                let processed = preprocess(&mut dynamic_paths, dp.clone(), val);
+                let val = dyn_val.clone().resolve(dyn_path, &root);
+                let processed = preprocess(&mut dynamic_paths, dyn_path.clone(), val);
                 if !matches!(processed, JsonPP::Dynamic(_)) {
                     // Resolved into something non-dynamic
-                    dynamic_paths.remove(dp);
+                    dynamic_paths.remove(dyn_path);
                 }
-                insert(dp, &mut root, processed);
+                insert(dyn_path, &mut root, processed);
             }
         }
 
@@ -101,9 +96,8 @@ fn preprocess(
                     temp_path.push(PathChunk::Argument(index));
                     let inner = preprocess(dyn_paths, temp_path.clone(), arg.to_owned());
 
-                    if let JsonPP::Dynamic(ref inner_dyn) = inner {
+                    if matches!(inner, JsonPP::Dynamic(_)) {
                         refs.push(temp_path);
-                        refs.extend(inner_dyn.dependencies.clone());
                     };
 
                     inner
@@ -136,7 +130,7 @@ fn preprocess(
     }
 }
 
-fn insert<'a>(path: &[PathChunk], root: &'a mut JsonPP, value: JsonPP) {
+fn insert(path: &[PathChunk], root: &mut JsonPP, value: JsonPP) {
     // Put the given value in the designated spot
     if path.is_empty() {
         *root = value;
@@ -180,7 +174,7 @@ fn insert<'a>(path: &[PathChunk], root: &'a mut JsonPP, value: JsonPP) {
 pub(crate) fn make_absolute(self_path: &[PathChunk], target_path: &[PathChunk]) -> Vec<PathChunk> {
     if target_path.first() == Some(&PathChunk::Parent) {
         // Relative path
-        let mut out: Vec<PathChunk> = self_path.iter().cloned().collect();
+        let mut out: Vec<PathChunk> = self_path.to_vec();
         for chunk in target_path {
             if *chunk == PathChunk::Parent {
                 out.pop();
@@ -192,7 +186,7 @@ pub(crate) fn make_absolute(self_path: &[PathChunk], target_path: &[PathChunk]) 
         return out;
     }
 
-    return target_path.to_vec();
+    target_path.to_vec()
 }
 
 pub(crate) fn ref_chain(path: String) -> Vec<PathChunk> {

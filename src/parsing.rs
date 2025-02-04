@@ -280,17 +280,13 @@ fn handle_escapes(input: String) -> String {
         }
 
         if current == '\\' {
-            if let Some(special) = iter
-                .peek()
-                .map(|next| match next {
-                    'n' => Some("\n"),
-                    't' => Some("\t"),
-                    '"' => Some("\""),
-                    '\\' => Some("\\"),
-                    _ => None,
-                })
-                .flatten()
-            {
+            if let Some(special) = iter.peek().and_then(|next| match next {
+                'n' => Some("\n"),
+                't' => Some("\t"),
+                '"' => Some("\""),
+                '\\' => Some("\\"),
+                _ => None,
+            }) {
                 skip_next = true;
                 coll.push(special.to_string());
                 continue;

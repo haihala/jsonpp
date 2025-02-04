@@ -584,7 +584,7 @@ fn reduce_impl(args: Vec<JsonPP>) -> JsonPP {
 fn definition_substitution(def: Definition, args: Vec<JsonPP>) -> JsonPP {
     assert_eq!(def.vars.len(), args.len());
     // Substitute all identifiers that corresponding values in the template
-    let subs: HashMap<String, JsonPP> = def.vars.into_iter().zip(args.into_iter()).collect();
+    let subs: HashMap<String, JsonPP> = def.vars.into_iter().zip(args).collect();
 
     recursive_substitute(*def.template, &subs)
 }
