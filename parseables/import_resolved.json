@@ -1,15 +1,10 @@
 {
   "dyn_import": {
     "key": 3,
-    "many": [
-      3,
-      6,
-      1.5
-    ]
+    "many": [3, 12, 1.5]
   },
-  "import": [
-    1
-  ],
+  "import": [1],
   "include": "[1]",
-  "path": "parseables/mini.json"
+  "path": "parseables/mini.json",
+  "key": 6
 }

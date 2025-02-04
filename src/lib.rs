@@ -165,4 +165,9 @@ mod tests {
             "parseables/import_resolved.json",
         );
     }
+
+    #[test]
+    fn def_and_folds() {
+        evaluate_to_equivalent("parseables/def.json++", "parseables/def_resolved.json");
+    }
 }

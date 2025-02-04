@@ -19,7 +19,8 @@ It is:
 
 These qualities are independent of each other. Be not afraid of the red in the
 syntax highlighting, GitHub simply doesn't comprehend the awesomeness of JSON++.
-Yet. Most of this file is a spec and does not confirm that something works.
+Yet. Most of what is on here works, but there are still lots of known bugs.
+Please for the love of everything you hold dear, don't use this for anything.
 
 To make a value interactive, you can call functions with our lisp-like syntax:
 
@@ -124,41 +125,34 @@ Falsy values are:
 You also have access to basic comparison functions such as `eq`, `lt`, `gt`,
 `lte`, and `gte`
 
-#### Fold
+#### Folds
 
-To iterate and aggregate, you can use `fold`. It takes two arguments, a function
-and a collection. The function should be one that takes two arguments and
-returns whatever. It'll then push the entire collection through that function.
-This is enough to implement map, filter and reduce like so:
+The language offers plenty of tools for manipulating data structures. Since all
+of them could be implemented with a fold, they are called folds. There are three
+available folds as of writing, `map`, `filter`, and `reduce`. See example:
 
-```
-// Reduce, take a list, evaluate to a single value
-(fold (ref some.list), (acc, elem) => (f acc, elem))
-
-// Map
-(fold (ref some.list), (acc, elem) => (merge [acc], [(f elem)]))
-
-// Filter
-(fold((ref some.list), (acc, elem) => (if (f elem), (merge [acc], [elem]), [acc]))
+```json
+{
+  "map": (map (def x, (mul 2, x)), (range 1, 10)),
+  "filter": (filter (def x, (eq 0, (mod x, 3))), (range 1, 10)),
+  "reduce": (reduce sum, (range 1, 10)),
+}
 ```
 
-All of these have been provided out of convenience, where you simply input the
-collection followed by the function denoted as f in the examples above.
+evaluates to
+
+```json
+{
+  "filter": [3, 6, 9],
+  "map": [2, 4, 6, 8, 10, 12, 14, 16, 18],
+  "reduce": 45
+}
+```
 
 ### Data structures
 
-#### Arrays
-
-Arrays can be indexed with the angle brackets `[n]`. Zero is the first element
-and positive indices count from the beginning. Negative indices count from the
-back. Indexing with a range produces a slice that corresponds to that range.
-
-Arrays of integers can be generated with the `(range start end)` function.
-
-#### Objects
-
-Object values can be accessed with angle brackets similar to arrays, except you
-have to use a string as a key.
+Arrays and Objects. Like JSON. Arrays of integers can be generated with the
+`(range start end)` function.
 
 ## IO
 

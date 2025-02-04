@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use log::debug;
-use strum::IntoEnumIterator;
 
-use crate::jsonpp::{Dynamic, Function, JsonPP};
+use crate::jsonpp::{Dynamic, JsonPP};
 
 pub(crate) struct Parser {
     chars: Vec<char>,
@@ -99,6 +98,10 @@ impl Parser {
 
     fn current(&self) -> Option<char> {
         self.chars.get(self.index).cloned()
+    }
+
+    fn rest(&self) -> String {
+        self.chars.iter().skip(self.index).cloned().collect()
     }
 
     fn parse_object(&mut self) -> JsonPP {
@@ -217,23 +220,11 @@ impl Parser {
         // Recursively call parse for intermediate objects
         self.skip_whitespace();
 
-        let mut function = None;
-
-        for fun in Function::iter() {
-            let string = fun.to_string();
-            if self.starts_with(&string) {
-                // We found our function
-                function = Some(fun);
-                break;
-            }
-        }
-
-        let fun = function.unwrap();
-        self.index += fun.to_string().len();
+        let callable = self.parse();
 
         self.skip_whitespace();
 
-        let mut args = vec![];
+        let mut args = vec![callable];
         while self.current() != Some(')') {
             args.push(self.parse());
             self.skip_to_next_iterable();
@@ -244,7 +235,6 @@ impl Parser {
         self.index += 1;
 
         JsonPP::Dynamic(Dynamic {
-            fun,
             args,
             path: vec![],
             dependencies: vec![],
@@ -267,6 +257,12 @@ impl Parser {
             }
         }
 
-        panic!("Could not parse");
+        let val = self.take_while(|ch| ch.is_alphabetic() || "_".contains(ch));
+
+        if val.is_empty() {
+            panic!("Could not parse: {}", self.rest());
+        }
+
+        JsonPP::Identifier(val)
     }
 }

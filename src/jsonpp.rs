@@ -1,11 +1,10 @@
-use std::{collections::HashMap, fmt::Display, fs::File, io::Read};
-
-use strum_macros::EnumIter;
+use std::{collections::HashMap, fs::File, io::Read};
 
 use crate::{evaluation, parsing};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum JsonPP {
+    Undefined, // The point of this to filter things out
     Null,
     Bool(bool),
     String(String),
@@ -13,7 +12,23 @@ pub(crate) enum JsonPP {
     Float(f64),
     Array(Vec<JsonPP>),
     Object(HashMap<String, JsonPP>),
+    Identifier(String),
+    Definition(Definition),
     Dynamic(Dynamic),
+}
+impl JsonPP {
+    fn is_truthy(&self) -> bool {
+        match self {
+            JsonPP::Null => false,
+            JsonPP::Bool(val) => *val,
+            JsonPP::String(val) => !val.is_empty(),
+            JsonPP::Int(val) => *val != 0,
+            JsonPP::Float(val) => *val != 0.0,
+            JsonPP::Array(vec) => !vec.is_empty(),
+            JsonPP::Object(hash_map) => !hash_map.is_empty(),
+            other => panic!("Cannot evaluate truthiness of '{:?}'", other),
+        }
+    }
 }
 
 impl TryInto<serde_json::Value> for JsonPP {
@@ -28,131 +43,28 @@ impl TryInto<serde_json::Value> for JsonPP {
             JsonPP::Float(val) => serde_json::Value::from(val),
             JsonPP::Array(vec) => serde_json::Value::Array(
                 vec.into_iter()
-                    .map(|elem| TryInto::<serde_json::Value>::try_into(elem))
-                    .collect::<Result<Vec<serde_json::Value>, ()>>()?,
+                    .filter_map(|elem| TryInto::<serde_json::Value>::try_into(elem).ok())
+                    .collect::<Vec<serde_json::Value>>(),
             ),
             JsonPP::Object(hash_map) => serde_json::Value::Object(
                 hash_map
                     .into_iter()
-                    .map(|(key, elem)| {
+                    .filter_map(|(key, elem)| {
                         TryInto::<serde_json::Value>::try_into(elem)
                             .map(|converted| (key, converted))
+                            .ok()
                     })
-                    .collect::<Result<serde_json::Map<String, serde_json::Value>, ()>>()?,
+                    .collect::<serde_json::Map<String, serde_json::Value>>(),
             ),
-            JsonPP::Dynamic(_) => return Err(()),
+            JsonPP::Undefined
+            | JsonPP::Identifier(_)
+            | JsonPP::Definition(_)
+            | JsonPP::Dynamic(_) => return Err(()),
         })
     }
 }
 
-#[derive(Debug, Clone, Copy, EnumIter, PartialEq, Eq)]
-pub(crate) enum Function {
-    Sum,
-    Sub,
-    Mul,
-    Div,
-    Min,
-    Max,
-    Mod,
-    Pow,
-    Log,
-    Len,
-    Ref,
-    Eq,
-    Gt,
-    Lt,
-    Gte,
-    Lte,
-    If,
-    Include,
-    Import,
-    Str,
-    Int,
-    Float,
-    Range,
-    Merge,
-    Fold,
-    Map,
-    Filter,
-    Reduce,
-}
-
-impl Display for Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Function::Sum => "sum",
-                Function::Sub => "sub",
-                Function::Mul => "mul",
-                Function::Div => "div",
-                Function::Min => "min",
-                Function::Max => "max",
-                Function::Mod => "mod",
-                Function::Pow => "pow",
-                Function::Log => "log",
-                Function::Len => "len",
-                Function::Ref => "ref",
-                Function::Eq => "eq",
-                Function::Gt => "gt",
-                Function::Lt => "lt",
-                Function::Gte => "gte",
-                Function::Lte => "lte",
-                Function::If => "if",
-                Function::Include => "include",
-                Function::Import => "import",
-                Function::Str => "str",
-                Function::Int => "int",
-                Function::Float => "float",
-                Function::Range => "range",
-                Function::Merge => "merge",
-                Function::Fold => "fold",
-                Function::Map => "map",
-                Function::Filter => "filter",
-                Function::Reduce => "reduce",
-            }
-        )
-    }
-}
-
-impl From<&str> for Function {
-    fn from(value: &str) -> Self {
-        match value {
-            "sum" => Function::Sum,
-            "sub" => Function::Sub,
-            "mul" => Function::Mul,
-            "div" => Function::Div,
-            "min" => Function::Min,
-            "max" => Function::Max,
-            "mod" => Function::Mod,
-            "pow" => Function::Pow,
-            "log" => Function::Log,
-            "len" => Function::Len,
-            "ref" => Function::Ref,
-            "eq" => Function::Eq,
-            "gt" => Function::Gt,
-            "lt" => Function::Lt,
-            "gte" => Function::Gte,
-            "lte" => Function::Lte,
-            "if" => Function::If,
-            "include" => Function::Include,
-            "import" => Function::Import,
-            "str" => Function::Str,
-            "int" => Function::Int,
-            "float" => Function::Float,
-            "range" => Function::Range,
-            "merge" => Function::Merge,
-            "fold" => Function::Fold,
-            "map" => Function::Map,
-            "filter" => Function::Filter,
-            "reduce" => Function::Reduce,
-            _ => panic!("Unrecognized function"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum PathChunk {
     Parent,
     Key(String),
@@ -161,45 +73,68 @@ pub(crate) enum PathChunk {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Definition {
+    pub vars: Vec<String>,
+    pub template: Box<JsonPP>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Dynamic {
-    pub fun: Function,
     pub args: Vec<JsonPP>,
     pub path: Vec<PathChunk>,
     pub dependencies: Vec<Vec<PathChunk>>,
 }
 
 impl Dynamic {
+    pub fn is_def(&self) -> bool {
+        self.args[0] == JsonPP::Identifier("def".to_owned())
+    }
+
+    pub fn is_ref(&self) -> bool {
+        self.args[0] == JsonPP::Identifier("ref".to_owned())
+    }
+}
+
+impl Dynamic {
     pub fn resolve(self, path: &[PathChunk], root: &JsonPP) -> JsonPP {
         // Dynamic has no dependencies left, we can resolve it to a value
-        match self.fun {
-            Function::Sum => sum_impl(self.args),
-            Function::Sub => sub_impl(self.args),
-            Function::Mul => mul_impl(self.args),
-            Function::Div => div_impl(self.args),
-            Function::Mod => mod_impl(self.args),
-            Function::Pow => pow_impl(self.args),
-            Function::Log => log_impl(self.args),
-            Function::Len => len_impl(self.args),
-            Function::Ref => ref_impl(self.args, path, root),
-            Function::Min => min_impl(self.args),
-            Function::Max => max_impl(self.args),
-            Function::Eq => eq_impl(self.args),
-            Function::Gt => num_cmp(self.args, |a, b| a > b, |a, b| a > b),
-            Function::Lt => num_cmp(self.args, |a, b| a < b, |a, b| a < b),
-            Function::Gte => num_cmp(self.args, |a, b| a >= b, |a, b| a >= b),
-            Function::Lte => num_cmp(self.args, |a, b| a <= b, |a, b| a <= b),
-            Function::If => if_impl(self.args),
-            Function::Include => include_impl(self.args),
-            Function::Import => import_impl(self.args),
-            Function::Str => str_impl(self.args),
-            Function::Int => int_impl(self.args),
-            Function::Float => float_impl(self.args),
-            Function::Range => range_impl(self.args),
-            Function::Merge => merge_impl(self.args),
-            Function::Fold => todo!(),
-            Function::Map => todo!(),
-            Function::Filter => todo!(),
-            Function::Reduce => todo!(),
+        assert!(!self.args.is_empty());
+        let (cmd, args) = self.args.split_at(1);
+
+        match cmd[0].to_owned() {
+            JsonPP::Identifier(fun) => match fun.as_str() {
+                "sum" => sum_impl(args.to_vec()),
+                "sub" => sub_impl(args.to_vec()),
+                "mul" => mul_impl(args.to_vec()),
+                "div" => div_impl(args.to_vec()),
+                "mod" => mod_impl(args.to_vec()),
+                "pow" => pow_impl(args.to_vec()),
+                "log" => log_impl(args.to_vec()),
+                "len" => len_impl(args.to_vec()),
+                "ref" => ref_impl(args.to_vec(), path, root),
+                "min" => min_impl(args.to_vec()),
+                "max" => max_impl(args.to_vec()),
+                "eq" => eq_impl(args.to_vec()),
+                "gt" => num_cmp(args.to_vec(), |a, b| a > b, |a, b| a > b),
+                "lt" => num_cmp(args.to_vec(), |a, b| a < b, |a, b| a < b),
+                "gte" => num_cmp(args.to_vec(), |a, b| a >= b, |a, b| a >= b),
+                "lte" => num_cmp(args.to_vec(), |a, b| a <= b, |a, b| a <= b),
+                "if" => if_impl(args.to_vec()),
+                "include" => include_impl(args.to_vec()),
+                "import" => import_impl(args.to_vec()),
+                "str" => str_impl(args.to_vec()),
+                "int" => int_impl(args.to_vec()),
+                "float" => float_impl(args.to_vec()),
+                "range" => range_impl(args.to_vec()),
+                "merge" => merge_impl(args.to_vec()),
+                "def" => def_impl(args.to_vec()),
+                "map" => map_impl(args.to_vec()),
+                "filter" => filter_impl(args.to_vec()),
+                "reduce" => reduce_impl(args.to_vec()),
+                other => panic!("Unrecognized function '{}'", other),
+            },
+            JsonPP::Definition(def) => definition_substitution(def, args.to_vec()),
+            other => panic!("Cannot call '{:?}'", other),
         }
     }
 }
@@ -316,7 +251,9 @@ fn ref_impl(args: Vec<JsonPP>, self_path: &[PathChunk], root: &JsonPP) -> JsonPP
 
     let target_path = evaluation::ref_chain(target);
 
-    evaluation::abs_fetch(&evaluation::make_absolute(self_path, &target_path), root).clone()
+    evaluation::abs_fetch(&evaluation::make_absolute(self_path, &target_path), root)
+        .cloned()
+        .unwrap()
 }
 
 fn min_impl(args: Vec<JsonPP>) -> JsonPP {
@@ -338,11 +275,8 @@ fn eq_impl(args: Vec<JsonPP>) -> JsonPP {
 
 fn if_impl(args: Vec<JsonPP>) -> JsonPP {
     assert_eq!(args.len(), 3); // Condition, if true, if not;
-    let JsonPP::Bool(cond) = args[0].clone() else {
-        panic!("If condition is not a boolean")
-    };
 
-    let index = if cond { 1 } else { 2 };
+    let index = if args[0].is_truthy() { 1 } else { 2 };
     args[index].clone()
 }
 
@@ -372,7 +306,7 @@ fn import_impl(args: Vec<JsonPP>) -> JsonPP {
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).unwrap();
 
-    evaluation::evaluate_raw(parsing::Parser::from(buffer).parse())
+    parsing::Parser::from(buffer).parse()
 }
 
 fn str_impl(args: Vec<JsonPP>) -> JsonPP {
@@ -413,8 +347,7 @@ fn str_impl(args: Vec<JsonPP>) -> JsonPP {
                 .collect::<Vec<String>>()
                 .join(", ")
         ),
-        // This is not supposed to be evaluated with a dynamic
-        JsonPP::Dynamic(_) => panic!("Can't convert dynamic to string"),
+        other => panic!("Can't convert {:?} to string", other),
     })
 }
 
@@ -522,6 +455,173 @@ fn object_merge_impl(args: Vec<JsonPP>) -> JsonPP {
             })
             .collect(),
     )
+}
+
+fn def_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert!(args.len() >= 2);
+    let vars = args
+        .clone()
+        .into_iter()
+        .take(args.len() - 1)
+        .map(|el| {
+            let JsonPP::Identifier(val) = el else {
+                panic!("Only identifiers allowed for definition parameters");
+            };
+
+            val
+        })
+        .collect();
+    JsonPP::Definition(Definition {
+        vars,
+        template: Box::new(args.last().unwrap().clone()),
+    })
+}
+
+fn map_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let callable = args[0].clone();
+
+    match args[1].clone() {
+        JsonPP::Array(arr) => JsonPP::Array(
+            arr.into_iter()
+                .map(|el| {
+                    JsonPP::Dynamic(Dynamic {
+                        args: vec![callable.clone(), el],
+                        ..Default::default()
+                    })
+                })
+                .collect(),
+        ),
+        JsonPP::Object(obj) => JsonPP::Object(
+            obj.into_iter()
+                .map(|(key, el)| {
+                    (
+                        key,
+                        JsonPP::Dynamic(Dynamic {
+                            args: vec![callable.clone(), el],
+                            ..Default::default()
+                        }),
+                    )
+                })
+                .collect(),
+        ),
+        other => panic!("Can't map over '{:?}'", other),
+    }
+}
+
+fn filter_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let callable = args[0].clone();
+
+    match args[1].clone() {
+        JsonPP::Array(arr) => JsonPP::Array(
+            arr.into_iter()
+                .map(|el| {
+                    let cond = JsonPP::Dynamic(Dynamic {
+                        args: vec![callable.clone(), el.clone()],
+                        ..Default::default()
+                    });
+
+                    JsonPP::Dynamic(Dynamic {
+                        args: vec![
+                            JsonPP::Identifier("if".to_owned()),
+                            cond,
+                            el,
+                            JsonPP::Undefined,
+                        ],
+                        ..Default::default()
+                    })
+                })
+                .collect(),
+        ),
+        JsonPP::Object(obj) => JsonPP::Object(
+            obj.into_iter()
+                .map(|(key, el)| {
+                    (key, {
+                        let cond = JsonPP::Dynamic(Dynamic {
+                            args: vec![callable.clone(), el.clone()],
+                            ..Default::default()
+                        });
+
+                        JsonPP::Dynamic(Dynamic {
+                            args: vec![
+                                JsonPP::Identifier("if".to_owned()),
+                                cond,
+                                el,
+                                JsonPP::Undefined,
+                            ],
+                            ..Default::default()
+                        })
+                    })
+                })
+                .collect(),
+        ),
+        other => panic!("Can't filter over '{:?}'", other),
+    }
+}
+
+fn reduce_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 2);
+
+    let callable = args[0].clone();
+
+    dbg!(match args[1].clone() {
+        JsonPP::Array(arr) => arr
+            .into_iter()
+            .reduce(|acc, el| {
+                JsonPP::Dynamic(Dynamic {
+                    args: vec![callable.clone(), acc, el.clone()],
+                    ..Default::default()
+                })
+            })
+            .unwrap_or(JsonPP::Undefined),
+        other => panic!("Can't reduce over '{:?}'", other),
+    })
+}
+
+fn definition_substitution(def: Definition, args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(def.vars.len(), args.len());
+    // Substitute all identifiers that corresponding values in the template
+    let subs: HashMap<String, JsonPP> = def.vars.into_iter().zip(args.into_iter()).collect();
+
+    recursive_substitute(*def.template, &subs)
+}
+
+fn recursive_substitute(object: JsonPP, sub_table: &HashMap<String, JsonPP>) -> JsonPP {
+    match object {
+        JsonPP::Identifier(ident) if sub_table.contains_key(&ident) => {
+            sub_table.get(&ident).unwrap().clone()
+        }
+
+        JsonPP::Array(vec) => JsonPP::Array(
+            vec.into_iter()
+                .map(|elem| recursive_substitute(elem, sub_table))
+                .collect(),
+        ),
+        JsonPP::Object(hash_map) => JsonPP::Object(
+            hash_map
+                .into_iter()
+                .map(|(key, val)| (key, recursive_substitute(val, sub_table)))
+                .collect(),
+        ),
+        JsonPP::Definition(definition) => JsonPP::Definition(Definition {
+            template: Box::new(recursive_substitute(*definition.template, sub_table)),
+            ..definition
+        }),
+        JsonPP::Dynamic(dynamic) => JsonPP::Dynamic(Dynamic {
+            args: dynamic
+                .args
+                .into_iter()
+                .map(|arg| recursive_substitute(arg, sub_table))
+                .collect(),
+            ..dynamic
+        }),
+
+        // Contains primitives and non-matching identifiers, just leave those alone
+        other => other,
+    }
 }
 
 #[cfg(test)]

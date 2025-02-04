@@ -1,44 +1,53 @@
+use std::collections::HashSet;
+
 use log::debug;
 
-use crate::jsonpp::{Function, JsonPP, PathChunk};
+use crate::jsonpp::{JsonPP, PathChunk};
 
 pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
     // Find all the dynamics
     // Update their internals
-    let mut dynamic_paths = vec![];
+    let mut dynamic_paths: HashSet<Vec<PathChunk>> = vec![].into_iter().collect();
     let mut root = preprocess(&mut dynamic_paths, vec![], parsed);
 
     while !dynamic_paths.is_empty() {
-        let mut resolved = vec![];
+        let mut progressing = false;
         // Resolve all the ones without dependencies
-        for dp in dynamic_paths.iter() {
-            let JsonPP::Dynamic(dv) = abs_fetch(dp, &root) else {
+        for dp in dynamic_paths.clone().iter() {
+            let JsonPP::Dynamic(dv) = abs_fetch(dp, &root).unwrap() else {
                 panic!("Fetching dynamics yields non-dynamic");
             };
 
             let deps = dv.dependencies.iter().filter(|dep| {
                 let path = make_absolute(dp, dep);
 
-                let target = abs_fetch(&path, &root);
-                matches!(target, JsonPP::Dynamic(_))
+                if let Some(target) = abs_fetch(&path, &root) {
+                    matches!(target, JsonPP::Dynamic(_))
+                } else {
+                    // If path fails to resolve, it means it's depending on something that got
+                    // evaluated out of existence, most likely in a fold of some sort
+                    false
+                }
             });
 
             if deps.count() == 0 {
+                progressing = true;
                 let val = dv.clone().resolve(dp, &root);
-                insert(dp, &mut root, val);
-                resolved.push(dp.clone());
+                let processed = preprocess(&mut dynamic_paths, dp.clone(), val);
+                if !matches!(processed, JsonPP::Dynamic(_)) {
+                    // Resolved into something non-dynamic
+                    dynamic_paths.remove(dp);
+                }
+                insert(dp, &mut root, processed);
             }
         }
 
-        if resolved.is_empty() {
+        if !progressing {
             // No dynamics were resolved, there is a reference cycle
             debug!("{:?}", &root);
             debug!("{:?}", &dynamic_paths);
             panic!("Reference cycle");
         }
-
-        // Update existing dependencies
-        dynamic_paths.retain(|path| !resolved.contains(path));
     }
 
     root
@@ -54,19 +63,29 @@ pub(crate) fn evaluate(parsed: JsonPP) -> serde_json::Value {
     out
 }
 
-fn preprocess(dyn_paths: &mut Vec<Vec<PathChunk>>, path: Vec<PathChunk>, value: JsonPP) -> JsonPP {
+fn preprocess(
+    dyn_paths: &mut HashSet<Vec<PathChunk>>,
+    path: Vec<PathChunk>,
+    value: JsonPP,
+) -> JsonPP {
     match value {
         JsonPP::Dynamic(mut dyn_val) => {
+            if dyn_val.is_def() {
+                // Evaluate it immediately
+                // root is not used for definitions
+                return dyn_val.resolve(&path, &JsonPP::Null);
+            }
+
             dyn_val.path = path.clone();
-            dyn_paths.push(path.clone());
+            dyn_paths.insert(path.clone());
 
             let mut refs = vec![];
 
-            if dyn_val.fun == Function::Ref {
-                assert_eq!(dyn_val.args.len(), 1);
-                match dyn_val.args[0].clone() {
+            if dyn_val.is_ref() {
+                assert_eq!(dyn_val.args.len(), 2);
+                match dyn_val.args[1].clone() {
                     JsonPP::String(string) => {
-                        refs.push(ref_chain(string));
+                        refs.push(make_absolute(&path, &ref_chain(string)));
                     }
                     JsonPP::Dynamic(_) => {}
                     other => panic!("Trying to call ref on {:?}", other),
@@ -198,9 +217,9 @@ pub(crate) fn ref_chain(path: String) -> Vec<PathChunk> {
         .collect()
 }
 
-pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> &'a JsonPP {
+pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a JsonPP> {
     if path.is_empty() {
-        return root;
+        return Some(root);
     }
 
     let next = &path[0];
@@ -210,24 +229,30 @@ pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> &'a JsonPP 
         PathChunk::Parent => panic!("Absolute path fetching needs an absolute path"),
         PathChunk::Key(key) => {
             let JsonPP::Object(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, key, path);
-                panic!("Accessing with a key");
+                debug!("Accessing with a key: {:?}, {:?}, {:?}", root, key, path);
+                return None;
             };
 
             abs_fetch(rest, &inner[key])
         }
         PathChunk::Index(index) => {
             let JsonPP::Array(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, index, path);
-                panic!("Accessing with an index");
+                debug!(
+                    "Accessing with an index: {:?}, {:?}, {:?}",
+                    root, index, path
+                );
+                return None;
             };
 
             abs_fetch(rest, &inner[*index])
         }
         PathChunk::Argument(index) => {
             let JsonPP::Dynamic(inner) = root else {
-                debug!("{:?}, {:?}, {:?}", root, index, path);
-                panic!("Accessing with an argument");
+                debug!(
+                    "Accessing with an argument: {:?}, {:?}, {:?}",
+                    root, index, path
+                );
+                return None;
             };
 
             abs_fetch(rest, &inner.args[*index])
