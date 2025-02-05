@@ -18,6 +18,8 @@ pub struct Args {
     input: Option<String>,
     #[arg(long)]
     output: Option<String>,
+    #[arg(long)]
+    force: bool,
 }
 impl Args {
     pub fn execute(self) {
@@ -42,7 +44,7 @@ impl Args {
             debug!("Outputting to file: {}", &path);
             let mut file = OpenOptions::new()
                 .write(true)
-                .create_new(true)
+                .create_new(!self.force)
                 .open(path)
                 .unwrap();
 
