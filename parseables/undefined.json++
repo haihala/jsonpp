@@ -1,0 +1,7 @@
+[
+    "First element",
+    (if false "second", undefined),
+    (if true "third", undefined),
+    "Last element",
+]
+

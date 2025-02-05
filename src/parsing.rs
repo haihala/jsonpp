@@ -251,6 +251,7 @@ impl Parser {
             ("true", JsonPP::Bool(true)),
             ("false", JsonPP::Bool(false)),
             ("null", JsonPP::Null),
+            ("undefined", JsonPP::Undefined),
         ] {
             if self.starts_with(matcher) {
                 self.index += matcher.len();

@@ -173,6 +173,14 @@ mod tests {
     }
 
     #[test]
+    fn undefined_if() {
+        evaluate_to_equivalent(
+            "parseables/undefined.json++",
+            "parseables/undefined_resolved.json",
+        );
+    }
+
+    #[test]
     fn def_and_folds() {
         evaluate_to_equivalent("parseables/def.json++", "parseables/def_resolved.json");
     }

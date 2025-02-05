@@ -19,7 +19,7 @@ pub(crate) enum JsonPP {
 impl JsonPP {
     fn is_truthy(&self) -> bool {
         match self {
-            JsonPP::Null => false,
+            JsonPP::Null | JsonPP::Undefined => false,
             JsonPP::Bool(val) => *val,
             JsonPP::String(val) => !val.is_empty(),
             JsonPP::Int(val) => *val != 0,

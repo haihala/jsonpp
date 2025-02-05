@@ -49,6 +49,7 @@ the same types as regular JSON, those being:
 - object
 - bool
 - null
+- undefined, will get stripped out of the final output
 
 ### Functions
 
@@ -118,6 +119,7 @@ Falsy values are:
 - 0
 - false
 - null
+- undefined
 - ""
 - {}
 - []
