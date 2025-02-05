@@ -241,6 +241,16 @@ mod tests {
     }
 
     #[test]
+    fn merges() {
+        evaluate_to_equivalent("merge");
+    }
+
+    #[test]
+    fn ranges() {
+        evaluate_to_equivalent("range");
+    }
+
+    #[test]
     fn simple_dynamic() {
         evaluate_to_equivalent("simple_dynamic");
     }

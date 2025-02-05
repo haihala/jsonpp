@@ -1,0 +1,7 @@
+[
+    (merge "Hello", " world"),
+    (merge "bread", " ", "and", " ", "butter"),
+    (merge ["Hello", " world"], ["bread", " ", "and", " ", "butter"]),
+    (merge {"key": "value"}, {"another_key": "another_value"}),
+    (merge {"key": "value"}, {"key": "another_value"}),
+]
