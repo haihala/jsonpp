@@ -60,7 +60,7 @@ impl Args {
 mod tests {
     use super::*;
 
-    fn read_file(path: &'static str) -> Vec<u8> {
+    fn read_file(path: &str) -> Vec<u8> {
         let mut file = File::open(path).unwrap();
         let mut contents = vec![];
         let _ = file.read_to_end(&mut contents).unwrap();
@@ -68,7 +68,7 @@ mod tests {
     }
 
     fn compare_serde(path: &'static str) {
-        let contents = read_file(path);
+        let contents = read_file(&format!("parseables/serde_comparison/{}", path));
         let parsed = parsing::Parser::from(contents.clone()).parse();
         dbg!(&parsed);
         let evaluated = evaluation::evaluate(parsed);
@@ -79,9 +79,9 @@ mod tests {
         assert_eq!(evaluated, serde_version);
     }
 
-    fn evaluate_to_equivalent(path1: &'static str, path2: &'static str) {
-        let file1 = read_file(path1);
-        let file2 = read_file(path2);
+    fn evaluate_to_equivalent(path: &'static str) {
+        let file1 = read_file(&format!("parseables/evaluation_inputs/{}.jsonpp", path));
+        let file2 = read_file(&format!("parseables/evaluation_outputs/{}.json", path));
 
         let eval1 = evaluation::evaluate(parsing::Parser::from(file1).parse());
         let eval2 = evaluation::evaluate(parsing::Parser::from(file2).parse());
@@ -91,22 +91,22 @@ mod tests {
 
     #[test]
     fn regular_json() {
-        compare_serde("parseables/wikipedia.json");
+        compare_serde("wikipedia.json");
     }
 
     #[test]
     fn commented_json() {
-        evaluate_to_equivalent("parseables/wikipedia.json", "parseables/wikipedia.jsonc");
+        evaluate_to_equivalent("wikipedia");
     }
 
     #[test]
     fn strings_formats() {
-        compare_serde("parseables/strings.json");
+        compare_serde("strings.json");
     }
 
     #[test]
     fn number_formats() {
-        compare_serde("parseables/numbers.json");
+        compare_serde("numbers.json");
     }
 
     #[test]
@@ -152,47 +152,32 @@ mod tests {
 
     #[test]
     fn simple_dynamic() {
-        evaluate_to_equivalent(
-            "parseables/simple_dynamic.json++",
-            "parseables/simple_dynamic_resolved.json",
-        );
+        evaluate_to_equivalent("simple_dynamic");
     }
 
     #[test]
     fn reference_dynamic() {
-        evaluate_to_equivalent(
-            "parseables/ref_dynamic.json++",
-            "parseables/ref_dynamic_resolved.json",
-        );
+        evaluate_to_equivalent("ref_dynamic");
     }
 
     #[test]
     fn import_and_include() {
-        evaluate_to_equivalent(
-            "parseables/import.json++",
-            "parseables/import_resolved.json",
-        );
+        evaluate_to_equivalent("import");
     }
 
     #[test]
     fn undefined_if() {
-        evaluate_to_equivalent(
-            "parseables/undefined.json++",
-            "parseables/undefined_resolved.json",
-        );
+        evaluate_to_equivalent("undefined");
     }
 
     #[test]
     fn self_ref() {
-        evaluate_to_equivalent(
-            "parseables/self_ref.json++",
-            "parseables/self_ref_resolved.json",
-        );
+        evaluate_to_equivalent("self_ref");
     }
 
     #[test]
-    fn obj_keys_vals() {
-        let file = read_file("parseables/keys_vals.json++");
+    fn keys_vals() {
+        let file = read_file("parseables/keys_vals.jsonpp");
         let eval = evaluation::evaluate(parsing::Parser::from(file).parse());
         dbg!(&eval);
         // Keys and values don't guarantee order
@@ -215,6 +200,6 @@ mod tests {
 
     #[test]
     fn def_and_folds() {
-        evaluate_to_equivalent("parseables/def.json++", "parseables/def_resolved.json");
+        evaluate_to_equivalent("def");
     }
 }

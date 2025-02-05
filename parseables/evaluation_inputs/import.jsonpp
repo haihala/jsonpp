@@ -1,0 +1,7 @@
+{
+    "path": "parseables/lib/mini.json",
+    "import": (import (ref "path")),
+    "include": (include (ref "path")),
+    "dyn_import": (import "parseables/lib/ref_dynamic.jsonpp"),
+    "key": 6,
+}

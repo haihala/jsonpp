@@ -1,7 +1,0 @@
-{
-    "path": "parseables/mini.json",
-    "import": (import (ref "path")),
-    "include": (include (ref "path")),
-    "dyn_import": (import "parseables/ref_dynamic.json++"),
-    "key": 6,
-}

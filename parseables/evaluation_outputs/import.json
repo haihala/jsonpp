@@ -5,6 +5,6 @@
   },
   "import": [1],
   "include": "[1]",
-  "path": "parseables/mini.json",
+  "path": "parseables/lib/mini.json",
   "key": 6
 }
