@@ -101,7 +101,17 @@ pub(crate) fn pow_impl(args: Vec<JsonPP>) -> JsonPP {
 
 pub(crate) fn log_impl(args: Vec<JsonPP>) -> JsonPP {
     assert_eq!(args.len(), 2);
-    num_reduce(|a, b| i64::ilog(a, b) as i64, f64::log, args)
+    num_reduce(
+        |a, b| b.ilog(a) as i64,
+        |a, b| {
+            if a == 1.0 {
+                panic!("There is no base 1 logarithm")
+            } else {
+                b.log(a)
+            }
+        },
+        args,
+    )
 }
 
 pub(crate) fn len_impl(args: Vec<JsonPP>) -> JsonPP {

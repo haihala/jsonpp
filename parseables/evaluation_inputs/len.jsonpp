@@ -1,0 +1,5 @@
+[
+    (len "foo"),
+    (len ["foo"]),
+    (len {"key": 1, "another_key": 2}),
+]

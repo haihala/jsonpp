@@ -171,6 +171,36 @@ mod tests {
     }
 
     #[test]
+    fn pows() {
+        evaluate_to_equivalent("pow");
+    }
+
+    #[test]
+    fn logs() {
+        evaluate_to_equivalent("log");
+    }
+
+    #[test]
+    fn lens() {
+        evaluate_to_equivalent("len");
+    }
+
+    #[test]
+    fn mins() {
+        evaluate_to_equivalent("min");
+    }
+
+    #[test]
+    fn maxs() {
+        evaluate_to_equivalent("max");
+    }
+
+    #[test]
+    fn mods() {
+        evaluate_to_equivalent("mod");
+    }
+
+    #[test]
     fn simple_dynamic() {
         evaluate_to_equivalent("simple_dynamic");
     }

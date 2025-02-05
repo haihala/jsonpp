@@ -76,9 +76,12 @@ include:
 - `(div a, b)` - a/b, will exit if b is zero
 - `(pow a, b)` - Raises a to the power of b
 - `(log a, b)` - a based Logarithm of b, `log(2, 8)` would output 3
+  - No base 1
 - `(mod a, b)` - Remainder when dividing a by b
 - `(max a, b)` - Returns the greater of two numeric values
+  - Comparing int and a float will output a float, value may be from the int
 - `(min a, b)` - Returns the lesser of two numeric values
+  - Comparing int and a float will output a float, value may be from the int
 - `(len a)` - Returns the length of a (string, object, array)
 - `(str a)` - Returns a as a string
 - `(int a)` - Attempts to parse an integer out of a
