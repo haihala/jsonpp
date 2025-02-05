@@ -95,11 +95,6 @@ mod tests {
     }
 
     #[test]
-    fn commented_json() {
-        evaluate_to_equivalent("wikipedia");
-    }
-
-    #[test]
     fn strings_formats() {
         compare_serde("strings.json");
     }
@@ -148,6 +143,31 @@ mod tests {
             let float = val.as_f64().unwrap();
             assert_eq!(float, target);
         }
+    }
+
+    #[test]
+    fn commented_json() {
+        evaluate_to_equivalent("wikipedia");
+    }
+
+    #[test]
+    fn sums() {
+        evaluate_to_equivalent("sum");
+    }
+
+    #[test]
+    fn subs() {
+        evaluate_to_equivalent("sub");
+    }
+
+    #[test]
+    fn muls() {
+        evaluate_to_equivalent("mul");
+    }
+
+    #[test]
+    fn divs() {
+        evaluate_to_equivalent("div");
     }
 
     #[test]

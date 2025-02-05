@@ -72,6 +72,10 @@ pub(crate) fn sub_impl(args: Vec<JsonPP>) -> JsonPP {
 
 pub(crate) fn div_impl(args: Vec<JsonPP>) -> JsonPP {
     assert_eq!(args.len(), 2);
+    if matches!(args[1], JsonPP::Float(0.0) | JsonPP::Int(0)) {
+        dbg!("(div {:?})", args);
+        panic!("Division by zero");
+    }
     num_reduce(|a, b| a / b, |a, b| a / b, args)
 }
 
