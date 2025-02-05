@@ -448,3 +448,25 @@ pub(crate) fn reduce_impl(args: Vec<JsonPP>) -> JsonPP {
         other => panic!("Can't reduce over '{:?}'", other),
     }
 }
+
+pub(crate) fn values_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+    let JsonPP::Object(obj) = args[0].clone() else {
+        panic!("Non-object argument to 'values'");
+    };
+
+    JsonPP::Array(obj.values().cloned().collect())
+}
+
+pub(crate) fn keys_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+    let JsonPP::Object(obj) = args[0].clone() else {
+        panic!("Non-object argument to 'keys'");
+    };
+
+    JsonPP::Array(
+        obj.keys()
+            .map(|key| JsonPP::String(key.to_string()))
+            .collect(),
+    )
+}

@@ -183,6 +183,29 @@ mod tests {
     }
 
     #[test]
+    fn obj_keys_vals() {
+        let file = read_file("parseables/keys_vals.json++");
+        let eval = evaluation::evaluate(parsing::Parser::from(file).parse());
+        dbg!(&eval);
+        // Keys and values don't guarantee order
+        let serde_json::Value::Object(obj) = eval else {
+            panic!("Not an object");
+        };
+
+        let serde_json::Value::Array(keys) = obj.get_key_value("keys").unwrap().1 else {
+            panic!("Keys is not an array");
+        };
+        let serde_json::Value::Array(values) = obj.get_key_value("values").unwrap().1 else {
+            panic!("Values is not an array");
+        };
+
+        for i in 1..=5 {
+            assert!(keys.contains(&serde_json::Value::String(format!("key{}", i))));
+            assert!(values.contains(&serde_json::Value::Number(i.into())));
+        }
+    }
+
+    #[test]
     fn def_and_folds() {
         evaluate_to_equivalent("parseables/def.json++", "parseables/def_resolved.json");
     }

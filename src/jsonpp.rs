@@ -141,6 +141,8 @@ impl Dynamic {
                 "map" => builtins::map_impl(args.to_vec()),
                 "filter" => builtins::filter_impl(args.to_vec()),
                 "reduce" => builtins::reduce_impl(args.to_vec()),
+                "keys" => builtins::keys_impl(args.to_vec()),
+                "values" => builtins::values_impl(args.to_vec()),
                 other => panic!("Unrecognized function '{}'", other),
             },
             JsonPP::Definition(def) => evaluation::definition_substitution(def, args.to_vec()),
