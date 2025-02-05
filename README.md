@@ -87,27 +87,33 @@ include:
 
 #### Ref
 
-`(ref path)` will evaluate to the value in the cell in the given path. Here are
-some valid paths:
-
-- `(ref foo)` - Value on the root object with the key 'foo'
-- `(ref .foo)` - Sibling value with the key 'foo' on the same object
-- `(ref foo.bar)` - Value of key 'bar' within the value of the key 'foo' within object root
-- `(ref .foo.bar)` - Value of key 'bar' within the value of the key 'foo', which is a sibling of current cell
-- `(ref .)` - Parent of current cell
-- `(ref ..)` - Parent of the parent of current cell
-- `(ref ...)` - Parent of the parent of the parent of current cell, this keeps going
-- `(ref [1])` - Assumes root node is an array, references the second element
-- `(ref .[1])` - Second sibling element (referer is another element in the same list)
-- `(ref .[-1])` - Previous sibling element, maybe later also next child
-- `(ref foo.[1])` - Second child of the array that is under key 'foo' under root
-- `(ref foo.[_])` - Every child of the array that is under key 'foo' under root
-- `(ref foo.[_].name)` - Name of every child of the array that is under key 'foo' under root
-
 Ref is probably the most important function. It allows you to reference a
-different 'cell'. When the initial file is parsed, dependencies between cells
-are taken into account. If at any point during the evaluation process, a cyclic
-dependency is detected, the program exits with an error message.
+different 'cell'. `(ref path)` will evaluate to the value in the cell in the
+given path. It can accept relative paths (start with a period) or absolute paths
+(everything else). The path must be a string.
+
+You have four path chunks that can be chained together in any order:
+
+- `.`, "parent", refers to the parent of the element
+- `[foo]`, "array index", allows indexing into arrays
+- `(foo)`, "parameter index", allows indexing into dynamic cell parameters
+  - Parameter 0 is the callable, after that you have args in order
+- `foo`, "object key", allows selecting a key of an object
+
+Here are some valid paths and what they point to:
+
+- `foo` - Key 'foo' under the object root
+- `foo.bar` - Key bar of the value of key 'foo' under the object root
+- `foo.[2]` - Third element of the array that is the value of key 'foo' under the object root
+- `foo.(2)` - Second parameter of the dynamic that is the value of key 'foo' under the object root
+- `.` - The ref call itself
+- `..` - Parent of the ref call
+- `...` - Grandparent of the ref call
+
+When using a relative path, you should think of the path relative to the ref
+call. `(ref ".")` is a ref call that points to itself. This is useful, since ref
+accepts any number of arguments, meaning you can use it to access values in
+itself like this: `(ref ".(2).name", {"name": "foo"})` will resolve to` "foo"`
 
 #### Import and include
 

@@ -80,7 +80,6 @@ fn preprocess(
             let mut refs = vec![];
 
             if dyn_val.is_ref() {
-                assert_eq!(dyn_val.args.len(), 2);
                 match dyn_val.args[1].clone() {
                     JsonPP::String(string) => {
                         refs.push(make_absolute(&path, &ref_chain(string)));

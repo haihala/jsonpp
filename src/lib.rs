@@ -183,6 +183,14 @@ mod tests {
     }
 
     #[test]
+    fn self_ref() {
+        evaluate_to_equivalent(
+            "parseables/self_ref.json++",
+            "parseables/self_ref_resolved.json",
+        );
+    }
+
+    #[test]
     fn obj_keys_vals() {
         let file = read_file("parseables/keys_vals.json++");
         let eval = evaluation::evaluate(parsing::Parser::from(file).parse());

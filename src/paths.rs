@@ -10,7 +10,8 @@ pub(crate) fn make_absolute(self_path: &[PathChunk], target_path: &[PathChunk]) 
     if target_path.first() == Some(&PathChunk::Parent) {
         // Relative path
         let mut out: Vec<PathChunk> = self_path.to_vec();
-        for chunk in target_path {
+        // Skip the first part. This allows for easier self ref
+        for chunk in target_path.iter().skip(1) {
             if *chunk == PathChunk::Parent {
                 out.pop();
             } else {
@@ -32,12 +33,12 @@ pub(crate) fn ref_chain(path: String) -> Vec<PathChunk> {
             }
 
             if chunk.starts_with("[") && chunk.ends_with("]") {
-                let inner = &chunk[1..(chunk.len() - 2)];
+                let inner = &chunk[1..(chunk.len() - 1)];
                 return PathChunk::Index(inner.parse().unwrap());
             }
 
             if chunk.starts_with("(") && chunk.ends_with(")") {
-                let inner = &chunk[1..(chunk.len() - 2)];
+                let inner = &chunk[1..(chunk.len() - 1)];
                 return PathChunk::Argument(inner.parse().unwrap());
             }
 
@@ -57,7 +58,11 @@ mod tests {
             PathChunk::Key("Baz".to_owned()),
         ];
         // Target a sibling
-        let target_path = vec![PathChunk::Parent, PathChunk::Key("Bar".to_owned())];
+        let target_path = vec![
+            PathChunk::Parent,
+            PathChunk::Parent,
+            PathChunk::Key("Bar".to_owned()),
+        ];
         let new_abs_path = make_absolute(&self_path, &target_path);
 
         assert_eq!(

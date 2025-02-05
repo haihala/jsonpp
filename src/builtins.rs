@@ -112,7 +112,6 @@ pub(crate) fn len_impl(args: Vec<JsonPP>) -> JsonPP {
 }
 
 pub(crate) fn ref_impl(args: Vec<JsonPP>, self_path: &[PathChunk], root: &JsonPP) -> JsonPP {
-    assert_eq!(args.len(), 1);
     let JsonPP::String(target) = args[0].clone() else {
         panic!("Non-string reference: {:?}", args);
     };
