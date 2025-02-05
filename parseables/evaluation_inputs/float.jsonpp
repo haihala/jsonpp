@@ -1,0 +1,15 @@
+[
+    (float "1"),
+    (float "123"),
+    (float "1.5"),
+    (float "123.5"),
+    (float 1),
+    (float 10),
+    (float 1.0),
+    (float 21.0),
+    (float 1.5),
+    (float 21.5),
+    (float null),
+    (float true),
+    (float false),
+]

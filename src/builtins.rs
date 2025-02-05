@@ -241,7 +241,10 @@ pub(crate) fn int_impl(args: Vec<JsonPP>) -> JsonPP {
         JsonPP::Null => 0,
         JsonPP::Bool(val) => val as i64,
         JsonPP::Float(val) => val.round() as i64,
-        JsonPP::String(val) => val.parse().expect("str to int parse failed"),
+        JsonPP::String(val) => val
+            .parse::<f64>()
+            .unwrap_or_else(|_| panic!("str to int parse failed: '{}'", val))
+            .round() as i64,
         other => panic!("Can't convert \"{:?}\" to int", other),
     })
 }

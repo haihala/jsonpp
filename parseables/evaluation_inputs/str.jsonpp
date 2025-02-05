@@ -1,0 +1,13 @@
+[
+    (str ""),
+    (str "foo"),
+    (str 1),
+    (str 1.0),
+    (str null),
+    (str true),
+    (str false),
+    (str []),
+    (str ["foo", 1]),
+    (str {}),
+    (str {"foo": 1}),
+]

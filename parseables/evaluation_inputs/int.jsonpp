@@ -1,0 +1,15 @@
+[
+    (int "1"),
+    (int "123"),
+    (int "1.5"),
+    (int "123.5"),
+    (int 1),
+    (int 10),
+    (int 1.0),
+    (int 21.0),
+    (int 1.5),
+    (int 21.5),
+    (int null),
+    (int true),
+    (int false),
+]

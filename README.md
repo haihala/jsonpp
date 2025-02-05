@@ -85,6 +85,7 @@ include:
 - `(len a)` - Returns the length of a (string, object, array)
 - `(str a)` - Returns a as a string
 - `(int a)` - Attempts to parse an integer out of a
+  - Will round the input if it has decimal places, "0.5" -> 1
 - `(float a)` - Attempts to parse a float out of a
 - `(merge a, b)` - Concatenates strings and arrays, combines objects
 

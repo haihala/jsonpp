@@ -201,6 +201,46 @@ mod tests {
     }
 
     #[test]
+    fn eqs() {
+        evaluate_to_equivalent("eq");
+    }
+
+    #[test]
+    fn lts() {
+        evaluate_to_equivalent("lt");
+    }
+
+    #[test]
+    fn ltes() {
+        evaluate_to_equivalent("lte");
+    }
+
+    #[test]
+    fn gts() {
+        evaluate_to_equivalent("gt");
+    }
+
+    #[test]
+    fn gtes() {
+        evaluate_to_equivalent("gte");
+    }
+
+    #[test]
+    fn strs() {
+        evaluate_to_equivalent("str");
+    }
+
+    #[test]
+    fn ints() {
+        evaluate_to_equivalent("int");
+    }
+
+    #[test]
+    fn floats() {
+        evaluate_to_equivalent("float");
+    }
+
+    #[test]
     fn simple_dynamic() {
         evaluate_to_equivalent("simple_dynamic");
     }
