@@ -40,16 +40,29 @@ Will evaluate to:
 }
 ```
 
-There are cases when some function demands a specific type. jsonpp has mostly
-the same types as regular JSON, those being:
+There are cases when some function demands a specific type. jsonpp has a pretty
+simple set of types, those being:
 
-- number is split to int and float while evaluating and then recombined to number in the output
+- int for integers
+  - Will compile to a number
+- float for floating point numbers
+  - Will compile to a number
 - string, double quoted
-- array
+- array, heterogeneous
 - object
 - bool
 - null
-- undefined, will get stripped out of the final output
+- undefined
+  - Will get stripped out of the final output
+- definition, aka custom functions
+  - JsonPP internal
+  - Will get stripped out of the final output
+- identifier, aka variable to be used in a definition
+  - JsonPP internal
+  - Dangling identifiers will cause an error
+- dynamic, aka function call
+  - JsonPP internal
+  - All of these must be evaluated
 
 ### Functions
 

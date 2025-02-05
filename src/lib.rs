@@ -5,9 +5,11 @@ use std::{
 
 use log::{debug, info};
 
+mod builtins;
 mod evaluation;
 mod jsonpp;
 mod parsing;
+mod paths;
 
 #[derive(Debug, clap::Parser)]
 #[command(version, about, long_about = None)]

@@ -1,8 +1,11 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use log::debug;
 
-use crate::jsonpp::{JsonPP, PathChunk};
+use crate::{
+    jsonpp::{Definition, Dynamic, JsonPP},
+    paths::{make_absolute, ref_chain, PathChunk},
+};
 
 pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
     // Find all the dynamics
@@ -171,46 +174,6 @@ fn insert(path: &[PathChunk], root: &mut JsonPP, value: JsonPP) {
     }
 }
 
-pub(crate) fn make_absolute(self_path: &[PathChunk], target_path: &[PathChunk]) -> Vec<PathChunk> {
-    if target_path.first() == Some(&PathChunk::Parent) {
-        // Relative path
-        let mut out: Vec<PathChunk> = self_path.to_vec();
-        for chunk in target_path {
-            if *chunk == PathChunk::Parent {
-                out.pop();
-            } else {
-                out.push(chunk.clone());
-            }
-        }
-
-        return out;
-    }
-
-    target_path.to_vec()
-}
-
-pub(crate) fn ref_chain(path: String) -> Vec<PathChunk> {
-    path.split(".")
-        .map(|chunk| {
-            if chunk.is_empty() {
-                return PathChunk::Parent;
-            }
-
-            if chunk.starts_with("[") && chunk.ends_with("]") {
-                let inner = &chunk[1..(chunk.len() - 2)];
-                return PathChunk::Index(inner.parse().unwrap());
-            }
-
-            if chunk.starts_with("(") && chunk.ends_with(")") {
-                let inner = &chunk[1..(chunk.len() - 2)];
-                return PathChunk::Argument(inner.parse().unwrap());
-            }
-
-            PathChunk::Key(chunk.to_owned())
-        })
-        .collect()
-}
-
 pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a JsonPP> {
     if path.is_empty() {
         return Some(root);
@@ -251,5 +214,48 @@ pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a 
 
             abs_fetch(rest, &inner.args[*index])
         }
+    }
+}
+
+pub(crate) fn definition_substitution(def: Definition, args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(def.vars.len(), args.len());
+    // Substitute all identifiers that corresponding values in the template
+    let subs: HashMap<String, JsonPP> = def.vars.into_iter().zip(args).collect();
+
+    recursive_substitute(*def.template, &subs)
+}
+
+fn recursive_substitute(object: JsonPP, sub_table: &HashMap<String, JsonPP>) -> JsonPP {
+    match object {
+        JsonPP::Identifier(ident) if sub_table.contains_key(&ident) => {
+            sub_table.get(&ident).unwrap().clone()
+        }
+
+        JsonPP::Array(vec) => JsonPP::Array(
+            vec.into_iter()
+                .map(|elem| recursive_substitute(elem, sub_table))
+                .collect(),
+        ),
+        JsonPP::Object(hash_map) => JsonPP::Object(
+            hash_map
+                .into_iter()
+                .map(|(key, val)| (key, recursive_substitute(val, sub_table)))
+                .collect(),
+        ),
+        JsonPP::Definition(definition) => JsonPP::Definition(Definition {
+            template: Box::new(recursive_substitute(*definition.template, sub_table)),
+            ..definition
+        }),
+        JsonPP::Dynamic(dynamic) => JsonPP::Dynamic(Dynamic {
+            args: dynamic
+                .args
+                .into_iter()
+                .map(|arg| recursive_substitute(arg, sub_table))
+                .collect(),
+            ..dynamic
+        }),
+
+        // Contains primitives and non-matching identifiers, just leave those alone
+        other => other,
     }
 }
