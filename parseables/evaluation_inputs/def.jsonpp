@@ -1,8 +1,8 @@
 {
     "simple": (def a b (sum a b)),
-    "called": ((def a b (sum a b)) 1, 2),
-    "reffed": ((ref "simple") 4, 6),
-    "map": (map (def x, (mul 2, x)), (range 1, 10)),
-    "filter": (filter (def x, (eq 0, (mod x, 3))), (range 1, 10)),
-    "reduce": (reduce sum, (range 1, 10)),
+    "called": ((def a b (sum a b)) 1 2),
+    "reffed": ((ref "simple") 4 6),
+    "map": (map (def x (mul 2 x)) (range 1 10)),
+    "filter": (filter (def x (eq 0 (mod x 3))) (range 1 10)),
+    "reduce": (reduce sum (range 1 10)),
 }

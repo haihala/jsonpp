@@ -1,5 +1,5 @@
 {
-    "key": (sum 1, 2),
+    "key": (sum 1 2),
     "many": [
         (sub 3 5),
         (mul 3 5),

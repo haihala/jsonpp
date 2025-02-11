@@ -1,5 +1,5 @@
 {
-    "norm_arr": (def lower, arr, upper, (map (def val, (div (sub val, lower), (sub upper, lower))), arr)),
-    "numbers": (map (def x, (div x, 10.0)), (range 1, 10)),
-    "normalized": ((ref "norm_arr") 0.0, (ref "numbers"), 2.0),
+    "norm_arr": (def lower arr upper (map (def val (div (sub val lower) (sub upper lower))) arr)),
+    "numbers": (map (def x (div x 10.0)) (range 1 10)),
+    "normalized": ((ref "norm_arr") 0.0 (ref "numbers") 2.0),
 }

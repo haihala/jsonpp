@@ -27,7 +27,7 @@ To make a value interactive, you can call functions with our lisp-like syntax:
 ```json
 {
     "key1": "1",
-    "key2": (sum 2, 1),
+    "key2": (sum 2 1),
 }
 ```
 
@@ -70,24 +70,24 @@ There are a bunch of useful functions in the language. Which unlike in Excel,
 won't get translated because I'm not that committed to the joke. Some of these
 include:
 
-- `(sum a, b, c, d...)` - Calculates the sum of all the elements
-- `(sub a, b)` - a-b
-- `(mul a, b, c, d...)` - Calculates the product of all the elements
-- `(div a, b)` - a/b, will exit if b is zero
-- `(pow a, b)` - Raises a to the power of b
-- `(log a, b)` - a based Logarithm of b, `log(2, 8)` would output 3
+- `(sum a b c d...)` - Calculates the sum of all the elements
+- `(sub a b)` - a-b
+- `(mul a b c d...)` - Calculates the product of all the elements
+- `(div a b)` - a/b, will exit if b is zero
+- `(pow a b)` - Raises a to the power of b
+- `(log a b)` - a based Logarithm of b, `(log 2 8)` would output 3
   - No base 1
-- `(mod a, b)` - Remainder when dividing a by b
-- `(max a, b)` - Returns the greater of two numeric values
+- `(mod a b)` - Remainder when dividing a by b
+- `(max a b)` - Returns the greater of two numeric values
   - Comparing int and a float will output a float, value may be from the int
-- `(min a, b)` - Returns the lesser of two numeric values
+- `(min a b)` - Returns the lesser of two numeric values
   - Comparing int and a float will output a float, value may be from the int
 - `(len a)` - Returns the length of a (string, object, array)
 - `(str a)` - Returns a as a string
 - `(int a)` - Attempts to parse an integer out of a
   - Will round the input if it has decimal places, "0.5" -> 1
 - `(float a)` - Attempts to parse a float out of a
-- `(merge a, b)` - Concatenates strings and arrays, combines objects
+- `(merge a b)` - Concatenates strings and arrays, combines objects
 
 #### Ref
 
@@ -117,7 +117,7 @@ Here are some valid paths and what they point to:
 When using a relative path, you should think of the path relative to the ref
 call. `(ref ".")` is a ref call that points to itself. This is useful, since ref
 accepts any number of arguments, meaning you can use it to access values in
-itself like this: `(ref ".(2).name", {"name": "foo"})` will resolve to` "foo"`
+itself like this: `(ref ".(2).name" {"name": "foo"})` will resolve to` "foo"`
 
 #### Import and include
 
@@ -130,7 +130,7 @@ are more jsonpp, so it parses that file. Somewhat similar output to `ref`.
 
 #### Conditionals
 
-The `(if cond, a, b)` value works similar to excel. It evaluates to a if cond is
+The `(if cond a b)` value works similar to excel. It evaluates to a if cond is
 truthy and b is cond is falsy. Truthy values include:
 
 - true
@@ -158,9 +158,9 @@ available folds as of writing, `map`, `filter`, and `reduce`. See example:
 
 ```json
 {
-  "map": (map (def x, (mul 2, x)), (range 1, 10)),
-  "filter": (filter (def x, (eq 0, (mod x, 3))), (range 1, 10)),
-  "reduce": (reduce sum, (range 1, 10)),
+  "map": (map (def x (mul 2 x)) (range 1 10)),
+  "filter": (filter (def x (eq 0 (mod x 3))) (range 1 10)),
+  "reduce": (reduce sum (range 1 10)),
 }
 ```
 

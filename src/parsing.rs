@@ -228,7 +228,7 @@ impl Parser {
         let mut args = vec![callable];
         while self.current() != Some(')') {
             args.push(self.parse());
-            self.skip_to_next_iterable();
+            self.skip_whitespace();
         }
 
         // It should end with the closing half
