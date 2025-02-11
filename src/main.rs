@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use jsonpp::Args;
+use json_preprocessor::Args;
 
 pub fn main() {
     env_logger::init();

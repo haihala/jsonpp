@@ -1,9 +1,19 @@
 [package]
-name = "jsonpp"
+name = "json_preprocessor"
 description = "JSON PreProcessor"
+homepage = "https://github.com/haihala/jsonpp"
 repository = "https://github.com/haihala/jsonpp"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+categories = [
+  "development-tools",
+  "command-line-utilities",
+  "parser-implementations",
+  "parsing",
+]
+keywords = ["json", "preprocessor", "parser"]
+exclude = ["parseables/*", ".github/*"]
 
 [dependencies]
 clap = { version = "4.5.27", features = ["derive"] }
