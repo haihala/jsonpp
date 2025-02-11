@@ -1,0 +1,12 @@
+{
+  "dyn_import": {
+    "key": 3,
+    "many": [
+      3,
+      12,
+      1.5
+    ]
+  },
+  "key": 6,
+  "ref_from_import": 3
+}

@@ -263,6 +263,11 @@ mod tests {
     }
 
     #[test]
+    fn reference_into_import() {
+        evaluate_to_equivalent("ref_into_import");
+    }
+
+    #[test]
     fn import_and_include() {
         evaluate_to_equivalent("import");
     }

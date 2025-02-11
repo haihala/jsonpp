@@ -23,9 +23,38 @@ pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
                 let path = make_absolute(dyn_path, dep);
                 // We should also check the contents of the dependencies if they have them
 
-                let target = abs_fetch(&path, &root).unwrap();
-
-                contains_dynamics(target)
+                if let Some(target) = abs_fetch(&path, &root) {
+                    contains_dynamics(target)
+                } else {
+                    // Target cannot be fetched
+                    // We must be in a ref, otherwise this is a bug in jsonpp
+                    assert!(
+                        dyn_val.is_ref(),
+                        "JsonPP is bugged and is referencing something that doesn't exist"
+                    );
+                    // We are referencing something that does not exist
+                    // If the nearest parent is dynamic, it may eventually exist
+                    // Otherwise it never will
+                    let mut temp_path = path.clone();
+                    temp_path.pop();
+                    while !temp_path.is_empty() {
+                        // Check if it exists
+                        if let Some(nearest_container) = abs_fetch(&temp_path, &root) {
+                            if matches!(nearest_container, JsonPP::Dynamic(_)) {
+                                return true;
+                            } else {
+                                // End of the path is wrong
+                                dbg!(path);
+                                panic!("You are referencing something that doesn't exist");
+                            }
+                        } else {
+                            temp_path.pop();
+                        }
+                    }
+                    // Root of the path is wrong
+                    dbg!(path);
+                    panic!("You are referencing something that doesn't exist");
+                }
             });
 
             if dyn_deps.count() == 0 {
@@ -188,7 +217,7 @@ pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a 
                 return None;
             };
 
-            abs_fetch(rest, &inner[key])
+            inner.get(key).map(|target| abs_fetch(rest, target))?
         }
         PathChunk::Index(index) => {
             let JsonPP::Array(inner) = root else {
@@ -199,7 +228,7 @@ pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a 
                 return None;
             };
 
-            abs_fetch(rest, &inner[*index])
+            inner.get(*index).map(|target| abs_fetch(rest, target))?
         }
         PathChunk::Argument(index) => {
             let JsonPP::Dynamic(inner) = root else {
@@ -210,7 +239,10 @@ pub(crate) fn abs_fetch<'a>(path: &[PathChunk], root: &'a JsonPP) -> Option<&'a 
                 return None;
             };
 
-            abs_fetch(rest, &inner.args[*index])
+            inner
+                .args
+                .get(*index)
+                .map(|target| abs_fetch(rest, target))?
         }
     }
 }

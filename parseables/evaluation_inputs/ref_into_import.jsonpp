@@ -1,0 +1,5 @@
+{
+    "dyn_import": (import "parseables/lib/ref_dynamic.jsonpp"),
+    "key": 6,
+    "ref_from_import": (ref "dyn_import.many.[0]"),
+}
