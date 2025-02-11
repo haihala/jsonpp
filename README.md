@@ -2,6 +2,8 @@
 
 JSON PreProcessor. Written in rust, so it's blazingly fast 🚀.
 
+[Find it on crates.io](https://crates.io/crates/json_preprocessor)
+
 It's a language somewhere between MS Excel and json with comments and trailing
 commas. The key ability is to calculate values dynamically based on other values
 in the file.
