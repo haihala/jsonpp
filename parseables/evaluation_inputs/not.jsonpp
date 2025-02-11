@@ -1,0 +1,13 @@
+[
+    (not null),
+    (not 1.5),
+    (not 0.5),
+    (not 1),
+    (not 0),
+    (not ""),
+    (not "foo"),
+    (not []),
+    (not ["foo"]),
+    (not {}),
+    (not { "foo": "bar" }),
+]

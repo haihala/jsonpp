@@ -145,6 +145,12 @@ pub(crate) fn max_impl(args: Vec<JsonPP>) -> JsonPP {
     num_reduce(i64::max, f64::max, args)
 }
 
+pub(crate) fn not_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert_eq!(args.len(), 1);
+
+    JsonPP::Bool(!args[0].is_truthy())
+}
+
 pub(crate) fn eq_impl(args: Vec<JsonPP>) -> JsonPP {
     assert_eq!(args.len(), 2);
 

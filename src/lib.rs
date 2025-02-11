@@ -203,6 +203,11 @@ mod tests {
     }
 
     #[test]
+    fn nots() {
+        evaluate_to_equivalent("not");
+    }
+
+    #[test]
     fn eqs() {
         evaluate_to_equivalent("eq");
     }

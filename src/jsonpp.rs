@@ -124,6 +124,7 @@ impl Dynamic {
                 "ref" => builtins::ref_impl(args.to_vec(), path, root),
                 "min" => builtins::min_impl(args.to_vec()),
                 "max" => builtins::max_impl(args.to_vec()),
+                "not" => builtins::not_impl(args.to_vec()),
                 "eq" => builtins::eq_impl(args.to_vec()),
                 "gt" => builtins::num_cmp(args.to_vec(), |a, b| a > b, |a, b| a > b),
                 "lt" => builtins::num_cmp(args.to_vec(), |a, b| a < b, |a, b| a < b),
