@@ -1,26 +1,27 @@
 # JSON++
 
-jsonpp, json++, jsonxx, or whatever you want to call it is a JSON PreProcessor.
+JSON PreProcessor. Written in rust, so it's blazingly fast 🚀.
 
-A language somewhere between MS Excel and json with comments and trailing
-commas. The key ability is to calculate a value based on other values in the
-file.
+It's a language somewhere between MS Excel and json with comments and trailing
+commas. The key ability is to calculate values dynamically based on other values
+in the file.
 
-A valid json file or even a json file with comments should be a valid jsonpp
-file, but it won't go the other way. Not all jsonpp files are valid json.
+A valid json file or even a json file with comments is a valid jsonpp file, but
+all jsonpp files are not valid json.
 
 ## The language
 
 It is:
 
-- A garbage joke
 - Functional
 - Interpreted
+- A garbage joke
 
 These qualities are independent of each other. Be not afraid of the red in the
 syntax highlighting, GitHub simply doesn't comprehend the awesomeness of jsonpp.
 Yet. Most of what is on here works, but there are still lots of known bugs.
 Please for the love of everything you hold dear, don't use this for anything.
+The error messages especially will be incredibly horrendous.
 
 To make a value interactive, you can call functions with our lisp-like syntax:
 
@@ -40,24 +41,25 @@ Will evaluate to:
 }
 ```
 
-There are cases when some function demands a specific type. jsonpp has a pretty
-simple set of types, those being:
+Some function demands a specific type. jsonpp has a simple set of types:
 
 - int for integers
-  - Will compile to a number
+  - Will be output as a number
 - float for floating point numbers
-  - Will compile to a number
-- string, double quoted
+  - Will be output as a number
+- string
+  - Double quoted
 - array, heterogeneous
 - object
 - bool
 - null
 - undefined
   - Will get stripped out of the final output
-- definition, aka custom functions
+  - Usable for conditional fields
+- definition
   - JsonPP internal
   - Will get stripped out of the final output
-- identifier, aka variable to be used in a definition
+- identifier
   - JsonPP internal
   - Dangling identifiers will cause an error
 - dynamic, aka function call
@@ -91,10 +93,10 @@ include:
 
 #### Ref
 
-Ref is probably the most important function. It allows you to reference a
-different 'cell'. `(ref path)` will evaluate to the value in the cell in the
-given path. It can accept relative paths (start with a period) or absolute paths
-(everything else). The path must be a string.
+Ref is the most important function. It allows you to reference a different
+'cell'. `(ref path)` will evaluate to the value in the given path. It can accept
+relative paths (start with a period) or absolute paths (everything else). The
+path must be a string, but can be dynamically generated.
 
 You have four path chunks that can be chained together in any order:
 
@@ -119,14 +121,23 @@ call. `(ref ".")` is a ref call that points to itself. This is useful, since ref
 accepts any number of arguments, meaning you can use it to access values in
 itself like this: `(ref ".(2).name" {"name": "foo"})` will resolve to` "foo"`
 
+Absolute paths are absolute relative to the primary jsonpp root.
+
 #### Import and include
 
 `(include path)` will work similar to include in languages like c. It will look
 for a file in the file system path and return its contents into this cell as a
 string.
 
-`(import path)` works like include, except it assumes the contents of that file
-are more jsonpp, so it parses that file. Somewhat similar output to `ref`.
+`(import path)` works like include, except it assumes the file contains jsonpp
+and parses that file. This has an effect when importing something that uses
+`ref` to reference something absolutely. Absolute refs are relative to the
+primary file, meaning if you run file A and it imports file B in some sub-field,
+absolute refs in file B will be relative to the root of file A.
+
+Paths for both are relative to the working directory of the shell that invoked
+
+`jsonpp`.
 
 #### Conditionals
 
@@ -148,7 +159,7 @@ Falsy values are:
 - []
 
 You also have access to basic comparison functions such as `eq`, `lt`, `gt`,
-`lte`, and `gte`
+`lte`, and `gte`. To invert something use `not`.
 
 #### Folds
 
@@ -179,8 +190,13 @@ evaluates to
 Arrays and Objects. Like JSON. Arrays of integers can be generated with the
 `(range start end)` function.
 
+As of writing, object keys must be hard-coded strings. I'm open to a PR if some
+psycho puts in the few hours to make it happen.
+
 ## IO
 
-Input can be read from a file with the `--input` cli argument, or from stdin if
-the argument is omited. Output will be sent to stdout unless `--output` is
-provided, in which case it'll be saved to that file.
+You cannot read input in jsonpp (yet), but the interpreter accepts input via
+file or stdin. Input can be read from a file with the `--input` cli argument, or
+from stdin if the argument is omitted. Output will be sent to stdout unless
+`--output` is provided, in which case it'll be saved to that file. If the file
+already exists, you need to use `--force` to override it.
