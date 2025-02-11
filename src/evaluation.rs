@@ -8,8 +8,6 @@ use crate::{
 };
 
 pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
-    // Find all the dynamics
-    // Update their internals
     let mut dynamic_paths: HashSet<Vec<PathChunk>> = vec![].into_iter().collect();
     let mut root = preprocess(&mut dynamic_paths, vec![], parsed);
 
@@ -23,9 +21,11 @@ pub(crate) fn evaluate_raw(parsed: JsonPP) -> JsonPP {
 
             let dyn_deps = dyn_val.dependencies.iter().filter(|dep| {
                 let path = make_absolute(dyn_path, dep);
+                // We should also check the contents of the dependencies if they have them
 
                 let target = abs_fetch(&path, &root).unwrap();
-                matches!(target, JsonPP::Dynamic(_))
+
+                contains_dynamics(target)
             });
 
             if dyn_deps.count() == 0 {
@@ -68,26 +68,8 @@ fn preprocess(
 ) -> JsonPP {
     match value {
         JsonPP::Dynamic(mut dyn_val) => {
-            if dyn_val.is_def() {
-                // Evaluate it immediately
-                // root is not used for definitions
-                return dyn_val.resolve(&path, &JsonPP::Null);
-            }
-
             dyn_val.path = path.clone();
             dyn_paths.insert(path.clone());
-
-            let mut refs = vec![];
-
-            if dyn_val.is_ref() {
-                match dyn_val.args[1].clone() {
-                    JsonPP::String(string) => {
-                        refs.push(make_absolute(&path, &ref_chain(string)));
-                    }
-                    JsonPP::Dynamic(_) => {}
-                    other => panic!("Trying to call ref on {:?}", other),
-                }
-            }
 
             dyn_val.args = dyn_val
                 .args
@@ -99,14 +81,31 @@ fn preprocess(
                     let inner = preprocess(dyn_paths, temp_path.clone(), arg.to_owned());
 
                     if matches!(inner, JsonPP::Dynamic(_)) {
-                        refs.push(temp_path);
+                        dyn_val
+                            .dependencies
+                            .push(vec![PathChunk::Parent, PathChunk::Argument(index)]);
                     };
 
                     inner
                 })
                 .collect();
 
-            dyn_val.dependencies = refs;
+            if dyn_val.is_ref() {
+                match dyn_val.args[1].clone() {
+                    JsonPP::String(string) => {
+                        dyn_val.dependencies.push(ref_chain(string));
+                    }
+                    JsonPP::Dynamic(_) => {}
+                    other => panic!("Trying to call ref on {:?}", other),
+                }
+            } else if dyn_val.is_def() {
+                // Immediately resolve to a def
+                // Internals or this should not be in dyn paths
+                dyn_paths.retain(|dyn_path| !dyn_path.starts_with(&path));
+
+                return dyn_val.resolve(&path, &JsonPP::Null);
+            }
+
             JsonPP::Dynamic(dyn_val)
         }
         JsonPP::Array(arr) => JsonPP::Array(
@@ -256,5 +255,23 @@ fn recursive_substitute(object: JsonPP, sub_table: &HashMap<String, JsonPP>) -> 
 
         // Contains primitives and non-matching identifiers, just leave those alone
         other => other,
+    }
+}
+
+fn contains_dynamics(target: &JsonPP) -> bool {
+    match target {
+        JsonPP::Dynamic(_) => true,
+
+        JsonPP::Undefined
+        | JsonPP::Definition(_)
+        | JsonPP::Identifier(_)
+        | JsonPP::Null
+        | JsonPP::Bool(_)
+        | JsonPP::String(_)
+        | JsonPP::Int(_)
+        | JsonPP::Float(_) => false,
+
+        JsonPP::Array(contents) => contents.iter().any(contains_dynamics),
+        JsonPP::Object(hash_map) => hash_map.values().any(contains_dynamics),
     }
 }

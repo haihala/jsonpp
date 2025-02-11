@@ -304,4 +304,11 @@ mod tests {
     fn def_and_folds() {
         evaluate_to_equivalent("def");
     }
+
+    #[test]
+    fn def_dyn_def() {
+        // Definitions in dynamics in definitions
+        // This will break if evaluation order breaks
+        evaluate_to_equivalent("def_dyn_def");
+    }
 }
