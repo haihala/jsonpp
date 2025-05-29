@@ -1,3 +1,4 @@
+use std::process::Command;
 use std::{fs::File, io::Read};
 
 use crate::{
@@ -492,5 +493,30 @@ pub(crate) fn keys_impl(args: Vec<JsonPP>) -> JsonPP {
         obj.keys()
             .map(|key| JsonPP::String(key.to_string()))
             .collect(),
+    )
+}
+
+pub(crate) fn shell_impl(args: Vec<JsonPP>) -> JsonPP {
+    assert!(args.len() >= 1);
+
+    let JsonPP::String(program) = args[0].clone() else {
+        panic!("First argument to shell should be a string");
+    };
+
+    let output = Command::new(program)
+        .args(args.into_iter().skip(1).map(|jp| {
+            let JsonPP::String(inner) = jp else {
+                panic!("All arguments to shell should be strings")
+            };
+            inner
+        }))
+        .output()
+        .expect("To receive output");
+
+    JsonPP::String(
+        String::from_utf8(output.stdout)
+            .expect("Command output to be utf-8")
+            .trim()
+            .to_string(),
     )
 }

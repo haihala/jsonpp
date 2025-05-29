@@ -314,4 +314,10 @@ mod tests {
         // This will break if evaluation order breaks
         evaluate_to_equivalent("def_dyn_def");
     }
+
+    #[test]
+    fn shell() {
+        let eval = evaluate_bytes("(shell \"echo\" \"foo\")".into());
+        assert_eq!(eval, Value::String("foo".into()));
+    }
 }
