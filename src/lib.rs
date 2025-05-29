@@ -1,6 +1,6 @@
 use std::{
-    fs::{File, OpenOptions},
-    io::{stdin, Read, Write},
+    fs::File,
+    io::{stdin, Read},
 };
 
 use jsonpp::JsonPP;
@@ -34,43 +34,25 @@ pub fn evaluate_bytes(bytes: Vec<u8>) -> Value {
 #[derive(Debug, clap::Parser)]
 #[command(version, about, long_about = None)]
 pub struct Args {
-    #[arg(long)]
-    input: Option<String>,
-    #[arg(long)]
-    output: Option<String>,
-    #[arg(long)]
-    force: bool,
+    /// Name of input file, or - for stdin
+    input: String,
 }
 impl Args {
     pub fn execute(self) {
         let mut input_buf = vec![];
-        let read_result = if let Some(path) = self.input {
-            debug!("Reading file from path: {}", &path);
-            let mut file = File::open(path).unwrap();
-            file.read_to_end(&mut input_buf).unwrap()
-        } else {
+        let read_result = if self.input == "-" {
             stdin().read_to_end(&mut input_buf).unwrap()
+        } else {
+            debug!("Reading file from path: {}", self.input);
+            let mut file = File::open(self.input).unwrap();
+            file.read_to_end(&mut input_buf).unwrap()
         };
 
         debug!("Read in {read_result} bytes");
 
         let output = evaluate_bytes(input_buf);
 
-        if let Some(path) = self.output {
-            debug!("Outputting to file: {}", &path);
-            let mut file = OpenOptions::new()
-                .write(true)
-                .create_new(!self.force)
-                .open(path)
-                .unwrap();
-
-            let _ = file
-                .write(&serde_json::to_vec_pretty(&output).unwrap())
-                .unwrap();
-        } else {
-            debug!("Outputting to stdout");
-            println!("{}", serde_json::to_string_pretty(&output).unwrap());
-        }
+        println!("{}", serde_json::to_string_pretty(&output).unwrap());
     }
 }
 
