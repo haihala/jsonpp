@@ -3,13 +3,33 @@ use std::{
     io::{stdin, Read, Write},
 };
 
+use jsonpp::JsonPP;
 use log::{debug, info};
+use serde_json::Value;
 
+mod ast_builder;
 mod builtins;
 mod evaluation;
 mod jsonpp;
-mod parsing;
 mod paths;
+mod tokenizing;
+
+fn parse_bytes(bytes: Vec<u8>) -> JsonPP {
+    info!("Tokenizing");
+    let token_stream = tokenizing::tokenize(bytes);
+    info!("Tokenized input, parsing AST");
+    let ast = ast_builder::build_ast(token_stream);
+    info!("Parsed ast");
+    return ast;
+}
+
+pub fn evaluate_bytes(bytes: Vec<u8>) -> Value {
+    let ast = parse_bytes(bytes);
+    info!("Evaluating input");
+    let evaluated = evaluation::evaluate(ast);
+    info!("Input evaluated");
+    return evaluated;
+}
 
 #[derive(Debug, clap::Parser)]
 #[command(version, about, long_about = None)]
@@ -34,11 +54,7 @@ impl Args {
 
         debug!("Read in {read_result} bytes");
 
-        info!("Parsing");
-        let parsed = parsing::Parser::from(input_buf).parse();
-        info!("Parsed input, evaluating");
-        let evaluated = evaluation::evaluate(parsed);
-        info!("Evaluated input");
+        let output = evaluate_bytes(input_buf);
 
         if let Some(path) = self.output {
             debug!("Outputting to file: {}", &path);
@@ -49,11 +65,11 @@ impl Args {
                 .unwrap();
 
             let _ = file
-                .write(&serde_json::to_vec_pretty(&evaluated).unwrap())
+                .write(&serde_json::to_vec_pretty(&output).unwrap())
                 .unwrap();
         } else {
             debug!("Outputting to stdout");
-            println!("{}", serde_json::to_string_pretty(&evaluated).unwrap());
+            println!("{}", serde_json::to_string_pretty(&output).unwrap());
         }
     }
 }
@@ -71,12 +87,8 @@ mod tests {
 
     fn compare_serde(path: &'static str) {
         let contents = read_file(&format!("parseables/serde_comparison/{}", path));
-        let parsed = parsing::Parser::from(contents.clone()).parse();
-        dbg!(&parsed);
-        let evaluated = evaluation::evaluate(parsed);
-        dbg!(&evaluated);
+        let evaluated = evaluate_bytes(contents.clone());
         let serde_version: serde_json::Value = serde_json::from_slice(&contents).unwrap();
-        dbg!(&serde_version);
 
         assert_eq!(evaluated, serde_version);
     }
@@ -85,8 +97,8 @@ mod tests {
         let file1 = read_file(&format!("parseables/evaluation_inputs/{}.jsonpp", path));
         let file2 = read_file(&format!("parseables/evaluation_outputs/{}.json", path));
 
-        let eval1 = evaluation::evaluate(parsing::Parser::from(file1).parse());
-        let eval2 = evaluation::evaluate(parsing::Parser::from(file2).parse());
+        let eval1 = evaluate_bytes(file1);
+        let eval2 = evaluate_bytes(file2);
 
         assert_eq!(eval1, eval2);
     }
@@ -112,8 +124,7 @@ mod tests {
         // but they are not in the json spec, but I originally misread
         // the spec and implemented them anyways
         let contents = read_file("parseables/exotic_numbers.json");
-        let parsed = parsing::Parser::from(contents.clone()).parse();
-        let evaluated = evaluation::evaluate(parsed);
+        let evaluated = evaluate_bytes(contents);
         let serde_json::Value::Array(arr) = evaluated else {
             panic!("Non-array return when parsing exotic number array");
         };
@@ -290,7 +301,7 @@ mod tests {
     #[test]
     fn keys_vals() {
         let file = read_file("parseables/keys_vals.jsonpp");
-        let eval = evaluation::evaluate(parsing::Parser::from(file).parse());
+        let eval = evaluate_bytes(file);
         dbg!(&eval);
         // Keys and values don't guarantee order
         let serde_json::Value::Object(obj) = eval else {

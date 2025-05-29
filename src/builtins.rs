@@ -3,7 +3,7 @@ use std::{fs::File, io::Read};
 use crate::{
     evaluation,
     jsonpp::{Definition, Dynamic, JsonPP},
-    parsing,
+    parse_bytes,
     paths::{make_absolute, ref_chain, PathChunk},
 };
 
@@ -193,7 +193,7 @@ pub(crate) fn import_impl(args: Vec<JsonPP>) -> JsonPP {
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).unwrap();
 
-    parsing::Parser::from(buffer).parse()
+    parse_bytes(buffer)
 }
 
 pub(crate) fn str_impl(args: Vec<JsonPP>) -> JsonPP {
