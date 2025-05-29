@@ -74,7 +74,7 @@ pub fn tokenize(input: Vec<u8>) -> impl Iterator<Item = Token> {
             if let Some(&after) = stream.peek() {
                 if after == '/' {
                     // Line comment, ignore until newline
-                    while let Some(next) = stream.next() {
+                    for next in stream.by_ref() {
                         if next == '\n' {
                             break;
                         }
@@ -142,7 +142,7 @@ fn complete_ident(content: &str) -> Token {
         return Token::Float(mantissa * 10.0f64.powf(exponent));
     }
 
-    return Token::Ident(content.into());
+    Token::Ident(content.into())
 }
 
 fn is_valid_ident_char(test_char: char) -> bool {
@@ -162,11 +162,11 @@ fn is_valid_ident_char(test_char: char) -> bool {
         return false;
     }
 
-    return true;
+    true
 }
 
 fn special(input: char) -> Option<Token> {
-    return Some(match input {
+    Some(match input {
         ':' => Token::Colon,
         '(' => Token::OpenParanthesis,
         ')' => Token::CloseParanthesis,
@@ -175,7 +175,7 @@ fn special(input: char) -> Option<Token> {
         '[' => Token::OpenBracket,
         ']' => Token::CloseBracket,
         _ => return None,
-    });
+    })
 }
 
 fn handle_escape_characters(input: String) -> String {

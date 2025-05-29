@@ -20,7 +20,7 @@ fn parse_bytes(bytes: Vec<u8>) -> JsonPP {
     info!("Tokenized input, parsing AST");
     let ast = ast_builder::build_ast(token_stream);
     info!("Parsed ast");
-    return ast;
+    ast
 }
 
 pub fn evaluate_bytes(bytes: Vec<u8>) -> Value {
@@ -28,7 +28,7 @@ pub fn evaluate_bytes(bytes: Vec<u8>) -> Value {
     info!("Evaluating input");
     let evaluated = evaluation::evaluate(ast);
     info!("Input evaluated");
-    return evaluated;
+    evaluated
 }
 
 #[derive(Debug, clap::Parser)]
