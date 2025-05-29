@@ -178,7 +178,9 @@ pub(crate) fn include_impl(args: Vec<JsonPP>) -> JsonPP {
     let mut buffer = vec![];
     file.read_to_end(&mut buffer).unwrap();
 
-    let string: String = buffer.into_iter().map(char::from).collect();
+    let string: String = str::from_utf8(&buffer)
+        .expect("File to contain utf-8")
+        .to_owned();
     JsonPP::String(string.trim().to_owned())
 }
 
