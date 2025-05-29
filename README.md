@@ -92,6 +92,7 @@ include:
   - Will round the input if it has decimal places, "0.5" -> 1
 - `(float a)` - Attempts to parse a float out of a
 - `(merge a b)` - Concatenates strings and arrays, combines objects
+- `(shell cmd arg1 arg2 arg3...)` - Invokes a program through the shell
 
 #### Ref
 
