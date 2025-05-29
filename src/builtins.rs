@@ -497,7 +497,7 @@ pub(crate) fn keys_impl(args: Vec<JsonPP>) -> JsonPP {
 }
 
 pub(crate) fn shell_impl(args: Vec<JsonPP>) -> JsonPP {
-    assert!(args.len() >= 1);
+    assert!(!args.is_empty());
 
     let JsonPP::String(program) = args[0].clone() else {
         panic!("First argument to shell should be a string");
